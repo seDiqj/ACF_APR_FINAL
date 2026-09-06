@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\LogHelpers;
-use App\Http\Requests\StoreBeneficiaryRequest;
+use App\Http\Requests\StoreKitDatabaseBeneficiaryRequest;
 use App\Http\Requests\StoreKitDistributionRequest;
 use App\Http\Requests\StoreKitForBeneficiaryRequest;
+use App\Http\Requests\UpdateKitDatabaseBeneficiaryRequest;
 use App\Models\Beneficiary;
 use App\Models\Database;
 use App\Models\District;
@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\DB;
 
 class KitDatabaseController extends Controller
 {
-    public function indexBeneficiaries(Request $request) {
+    public function indexBeneficiaries(Request $request) 
+    {
 
         $kitDb = Database::where("name", "kit_database")->first();
 
@@ -389,7 +390,7 @@ class KitDatabaseController extends Controller
         }
     }
 
-    public function storeBeneficiary(StoreBeneficiaryRequest $request) 
+    public function storeBeneficiary(StoreKitDatabaseBeneficiaryRequest $request) 
     {
 
         if (!($request->input("program") || $request->input("indicators"))) 
@@ -528,7 +529,7 @@ class KitDatabaseController extends Controller
         return response()->json(["status" => false, "message" => "", "data" => $kit], 200);
     }
 
-    public function updateBeneficiary(Request $request, string $id) 
+    public function updateBeneficiary(UpdateKitDatabaseBeneficiaryRequest $request, string $id) 
     {
 
         $kitDatabaseFromDb = Database::where("name", "kit_database")->first();

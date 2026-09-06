@@ -256,7 +256,6 @@ class EnactController extends Controller
         $pivotData = [];
 
         foreach ($questionIds as $questionId) {
-            // دریافت نمره با استفاده مستقیم از شناسه واقعی سوال
             $score = (int) ($scores[$questionId] ?? 0);
 
             $pivotData[$questionId] = ['score' => $score];
@@ -296,13 +295,11 @@ class EnactController extends Controller
             $totalScore += (int) $score;
         }
 
-        // update assessment main data
         $assessment->update([
             "totalScore" => $totalScore,
             "date" => $date
         ]);
 
-        // overwrite pivot data (important!)
         $assessment->questions()->sync($pivotData);
 
         return response()->json([

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -13,14 +12,16 @@ from openpyxl.styles import (
     Side,
 )
 from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.dimensions import ColumnDimension
 
 
 # ============================================================
 # CONFIG
 # ============================================================
 
-OUTPUT_FILE = Path(__file__).resolve().parent / "APR_Monitoring_Test.xlsx"
+OUTPUT_FILE = (
+    Path(__file__).resolve().parent
+    / "APR_Monitoring_Test.xlsx"
+)
 
 MONTHS = [
     "Jan",
@@ -45,8 +46,13 @@ QUARTERS = [
 ]
 
 # Exact names from JSX
-ENACT_COUNSELLORS = "# of supervised psychosocial counsellors"
-ENACT_SCORE = "# Accumulated score EQUIP (ENACT) Tool"
+ENACT_COUNSELLORS = (
+    "# of supervised psychosocial counsellors"
+)
+
+ENACT_SCORE = (
+    "# Accumulated score EQUIP (ENACT) Tool"
+)
 
 SPECIAL_DISAGGS = [
     ENACT_COUNSELLORS,
@@ -66,14 +72,16 @@ BLUE_DARK = "4472C4"
 BLUE_LIGHT = "D9EAF7"
 
 GRAY_DARK = "666666"
-GRAY = "D9E1F2"
 GRAY_LIGHT = "F2F2F2"
 
 WHITE = "FFFFFF"
 BLACK = "000000"
 
-YELLOW = "FFF2CC"
 ORANGE = "FCE4D6"
+
+# ISP3
+ISP3_DARK = "1E3A5F"
+ISP3_LIGHT = "EEF2FF"
 
 BORDER_COLOR = "B7B7B7"
 
@@ -117,14 +125,19 @@ gray_fill = PatternFill(
     fgColor=GRAY_LIGHT,
 )
 
-yellow_fill = PatternFill(
-    fill_type="solid",
-    fgColor=YELLOW,
-)
-
 orange_fill = PatternFill(
     fill_type="solid",
     fgColor=ORANGE,
+)
+
+isp3_section_fill = PatternFill(
+    fill_type="solid",
+    fgColor=ISP3_DARK,
+)
+
+isp3_body_fill = PatternFill(
+    fill_type="solid",
+    fgColor=ISP3_LIGHT,
 )
 
 
@@ -165,11 +178,29 @@ font_small = Font(
     color=BLACK,
 )
 
+# ENACT now uses exactly the same
+# normal body style as other indicators.
 font_enact = Font(
     name="Calibri",
-    size=9,
+    size=10,
     bold=True,
     color=BLACK,
+)
+
+# ISP3 body
+font_isp3 = Font(
+    name="Calibri",
+    size=11,
+    bold=True,
+    color="374151",
+)
+
+# Larger ISP3 section title
+font_isp3_section = Font(
+    name="Calibri",
+    size=15,
+    bold=True,
+    color=WHITE,
 )
 
 
@@ -182,6 +213,11 @@ thin_side = Side(
     color=BORDER_COLOR,
 )
 
+medium_side = Side(
+    style="medium",
+    color="7F7F7F",
+)
+
 thin_border = Border(
     left=thin_side,
     right=thin_side,
@@ -189,10 +225,21 @@ thin_border = Border(
     bottom=thin_side,
 )
 
+section_border = Border(
+    left=medium_side,
+    right=medium_side,
+    top=medium_side,
+    bottom=medium_side,
+)
+
 
 # ============================================================
 # ALIGNMENTS
 # ============================================================
+
+# IMPORTANT:
+# All normal table cells are centered horizontally
+# and vertically.
 
 center_alignment = Alignment(
     horizontal="center",
@@ -201,14 +248,20 @@ center_alignment = Alignment(
 )
 
 left_alignment = Alignment(
-    horizontal="left",
+    horizontal="center",
     vertical="center",
     wrap_text=True,
 )
 
 top_left_alignment = Alignment(
-    horizontal="left",
-    vertical="top",
+    horizontal="center",
+    vertical="center",
+    wrap_text=True,
+)
+
+isp3_alignment = Alignment(
+    horizontal="center",
+    vertical="center",
     wrap_text=True,
 )
 
@@ -220,10 +273,8 @@ top_left_alignment = Alignment(
 def safe_number(value: Any) -> float:
     """
     Convert values to numeric values safely.
-
-    Equivalent to the defensive numeric handling used
-    in the JSX.
     """
+
     if value is None:
         return 0
 
@@ -232,14 +283,17 @@ def safe_number(value: Any) -> float:
 
     try:
         return float(value)
+
     except (TypeError, ValueError):
         return 0
 
 
 def clean_number(value: float) -> int | float:
     """
-    Avoid writing 10.0 into Excel when the value is actually 10.
+    Avoid writing 10.0 into Excel when the value
+    is actually 10.
     """
+
     if float(value).is_integer():
         return int(value)
 
@@ -253,15 +307,20 @@ def ensure_months(
     """
     Normalize month array.
 
-    JSX behavior uses missing values as 0.
+    Missing values become 0.
     """
+
     months = months or []
 
-    result = []
+    result: List[float] = []
 
     for i in range(count):
+
         if i < len(months):
-            result.append(safe_number(months[i]))
+            result.append(
+                safe_number(months[i])
+            )
+
         else:
             result.append(0)
 
@@ -311,12 +370,16 @@ def calculate_enact(
     )
 
     dm1_ensured = [
-        safe_number(dm1[i]) if i < len(dm1) else 0
+        safe_number(dm1[i])
+        if i < len(dm1)
+        else 0
         for i in range(month_count)
     ]
 
     dm2_ensured = [
-        safe_number(dm2[i]) if i < len(dm2) else 0
+        safe_number(dm2[i])
+        if i < len(dm2)
+        else 0
         for i in range(month_count)
     ]
 
@@ -328,12 +391,17 @@ def calculate_enact(
 
     for i in range(month_count):
 
-        denominator = dm1_ensured[i] * 60
+        denominator = (
+            dm1_ensured[i] * 60
+        )
 
         if denominator == 0:
             denominator = 1
 
-        ratio = dm2_ensured[i] / denominator
+        ratio = (
+            dm2_ensured[i]
+            / denominator
+        )
 
         each_month_label.append(
             enact_label(ratio)
@@ -345,7 +413,11 @@ def calculate_enact(
 
     each_quarter_label: List[str] = []
 
-    for i in range(0, month_count, 3):
+    for i in range(
+        0,
+        month_count,
+        3,
+    ):
 
         quarter_ratios: List[float] = []
 
@@ -354,14 +426,21 @@ def calculate_enact(
             if i + j >= month_count:
                 break
 
-            denominator = dm1_ensured[i + j] * 60
+            denominator = (
+                dm1_ensured[i + j] * 60
+            )
 
             if denominator == 0:
                 denominator = 1
 
-            ratio = dm2_ensured[i + j] / denominator
+            ratio = (
+                dm2_ensured[i + j]
+                / denominator
+            )
 
-            quarter_ratios.append(ratio)
+            quarter_ratios.append(
+                ratio
+            )
 
         if not quarter_ratios:
             continue
@@ -416,17 +495,23 @@ def sum_months(
     month_count: int,
 ) -> List[float]:
 
-    result = []
+    result: List[float] = []
 
-    for month_index in range(month_count):
+    for month_index in range(
+        month_count
+    ):
 
         total = 0
 
         for d in disaggregation:
 
-            months = d.get("months") or []
+            months = (
+                d.get("months")
+                or []
+            )
 
             if month_index < len(months):
+
                 total += safe_number(
                     months[month_index]
                 )
@@ -439,7 +524,12 @@ def sum_months(
 def normal_indicator_calculation(
     indicator: Dict[str, Any],
     month_count: int,
-) -> Tuple[List[float], float, float, str]:
+) -> Tuple[
+    List[float],
+    float,
+    float,
+    str,
+]:
 
     disaggregations = indicator.get(
         "disaggregation",
@@ -463,14 +553,18 @@ def normal_indicator_calculation(
     )
 
     if total_target:
+
         percent = (
             total_achievement
             / total_target
         ) * 100
 
-        percent_achieved = f"{percent:.2f}"
+        percent_achieved = (
+            f"{percent:.2f}"
+        )
 
     else:
+
         percent_achieved = "0"
 
     return (
@@ -503,23 +597,17 @@ def make_enact_indicator(
     index: int,
 ) -> Dict[str, Any]:
 
-    # --------------------------------------------------------
-    # We intentionally create values that produce all
-    # performance categories across the test dataset.
-    #
-    # Ratio = score / (counsellors * 60)
-    # --------------------------------------------------------
-
     performance_ratios = [
-        1.00,   # Excellent
-        0.85,   # Good
-        0.70,   # Fair
-        0.55,   # Needs Improvement
-        0.30,   # Poor
+        1.00,
+        0.85,
+        0.70,
+        0.55,
+        0.30,
     ]
 
     ratio = performance_ratios[
-        index % len(performance_ratios)
+        index
+        % len(performance_ratios)
     ]
 
     counsellors = [
@@ -542,16 +630,11 @@ def make_enact_indicator(
         ),
         "disaggregation": [
             {
-                # IMPORTANT:
-                # This MUST remain index 0
-                # because JSX assumes this order.
                 "name": ENACT_COUNSELLORS,
                 "target": 4,
                 "months": counsellors,
             },
             {
-                # IMPORTANT:
-                # This MUST remain index 1.
                 "name": ENACT_SCORE,
                 "target": 240,
                 "months": scores,
@@ -576,13 +659,20 @@ def make_normal_indicator(
         )
 
         months = [
-            base + ((m + index + d_index) % 5)
+            base
+            + (
+                (m + index + d_index)
+                % 5
+            )
             for m in range(12)
         ]
 
         disaggregations.append(
             make_normal_disaggregation(
-                name=f"Disaggregation {d_index + 1}",
+                name=(
+                    f"Disaggregation "
+                    f"{d_index + 1}"
+                ),
                 target=sum(months) + 20,
                 months=months,
             )
@@ -591,9 +681,61 @@ def make_normal_indicator(
     return {
         "code": code,
         "name": (
-            f"Normal Indicator {index + 1}"
+            f"Normal Indicator "
+            f"{index + 1}"
         ),
-        "disaggregation": disaggregations,
+        "disaggregation": (
+            disaggregations
+        ),
+    }
+
+
+def make_isp3_indicator(
+    code: str,
+    index: int,
+) -> Dict[str, Any]:
+
+    disaggregations = []
+
+    for d_index in range(3):
+
+        base = (
+            8
+            + d_index
+            + (index % 3)
+        )
+
+        months = [
+            base
+            + (
+                (m + index + d_index)
+                % 4
+            )
+            for m in range(12)
+        ]
+
+        disaggregations.append(
+            make_normal_disaggregation(
+                name=(
+                    f"ISP3 Disaggregation "
+                    f"{d_index + 1}"
+                ),
+                target=sum(months) + 15,
+                months=months,
+            )
+        )
+
+    return {
+        "indicatorRef": (
+            f"ISP3-I{index + 1}"
+        ),
+        "indicator": (
+            f"ISP3 Indicator "
+            f"{index + 1}"
+        ),
+        "disaggregation": (
+            disaggregations
+        ),
     }
 
 
@@ -624,7 +766,9 @@ def create_test_data() -> Dict[str, Any]:
                             f".OP{output_index + 1}"
                             f".I{len(indicators) + 1}"
                         ),
-                        index=global_indicator_index,
+                        index=(
+                            global_indicator_index
+                        ),
                     )
                 )
 
@@ -643,7 +787,9 @@ def create_test_data() -> Dict[str, Any]:
                             f".OP{output_index + 1}"
                             f".E{len(indicators) + 1}"
                         ),
-                        index=global_indicator_index,
+                        index=(
+                            global_indicator_index
+                        ),
                     )
                 )
 
@@ -670,6 +816,118 @@ def create_test_data() -> Dict[str, Any]:
             }
         )
 
+    # ========================================================
+    # ISP3 TEST DATA
+    # ========================================================
+
+    isp3s = []
+
+    global_isp3_indicator_index = 0
+
+    for isp3_index in range(3):
+
+        indicators = []
+
+        # ----------------------------------------------------
+        # 4 normal ISP3 indicators
+        # ----------------------------------------------------
+
+        for _ in range(4):
+
+            indicators.append(
+                make_isp3_indicator(
+                    code=(
+                        f"ISP3-{isp3_index + 1}"
+                        f"-I{len(indicators) + 1}"
+                    ),
+                    index=(
+                        global_isp3_indicator_index
+                    ),
+                )
+            )
+
+            global_isp3_indicator_index += 1
+
+        # ----------------------------------------------------
+        # 2 ENACT ISP3 indicators
+        # ----------------------------------------------------
+
+        for _ in range(2):
+
+            enact_index = (
+                global_isp3_indicator_index
+            )
+
+            performance_ratios = [
+                1.00,
+                0.85,
+                0.70,
+                0.55,
+                0.30,
+            ]
+
+            ratio = performance_ratios[
+                enact_index
+                % len(performance_ratios)
+            ]
+
+            counsellors = [
+                4
+                for _ in range(12)
+            ]
+
+            scores = [
+                int(
+                    4 * 60 * ratio
+                )
+                for _ in range(12)
+            ]
+
+            indicators.append(
+                {
+                    "indicatorRef": (
+                        f"ISP3-"
+                        f"{isp3_index + 1}-E"
+                        f"{len(indicators) + 1}"
+                    ),
+                    "indicator": (
+                        "ISP3 ENACT "
+                        "Performance Indicator "
+                        f"{len(indicators) + 1}"
+                    ),
+                    "disaggregation": [
+                        {
+                            "name": (
+                                ENACT_COUNSELLORS
+                            ),
+                            "target": 4,
+                            "months": counsellors,
+                        },
+                        {
+                            "name": (
+                                ENACT_SCORE
+                            ),
+                            "target": 240,
+                            "months": scores,
+                        },
+                    ],
+                }
+            )
+
+            global_isp3_indicator_index += 1
+
+        isp3s.append(
+            {
+                "isp3": (
+                    f"ISP3 Strategic Result "
+                    f"{isp3_index + 1}: "
+                    "Improved implementation, "
+                    "quality and accountability"
+                ),
+                "indicators": indicators,
+            }
+        )
+
     return {
         "impact": (
             "Improved institutional performance "
@@ -684,7 +942,7 @@ def create_test_data() -> Dict[str, Any]:
         "projectStartDate": "2026-01-01",
         "projectEndDate": "2026-12-31",
         "outcomes": outcomes,
-        "isp3s": [],
+        "isp3s": isp3s,
     }
 
 
@@ -733,6 +991,19 @@ def rows_per_outcome(
     )
 
 
+def rows_per_isp3(
+    isp3: Dict[str, Any]
+) -> int:
+
+    return sum(
+        rows_per_indicator(indicator)
+        for indicator in isp3.get(
+            "indicators",
+            []
+        )
+    )
+
+
 # ============================================================
 # CELL STYLING
 # ============================================================
@@ -746,6 +1017,7 @@ def style_cell(
     border=True,
     number_format=None,
 ):
+
     if fill is not None:
         cell.fill = fill
 
@@ -773,12 +1045,6 @@ def write_cell(
     alignment=None,
     number_format=None,
 ):
-    """
-    Centralized cell writer.
-
-    This function always writes only to a normal cell.
-    We never attempt to write into a merged child cell.
-    """
 
     cell = ws.cell(
         row=row,
@@ -790,7 +1056,10 @@ def write_cell(
         cell,
         fill=fill,
         font=font or font_body,
-        alignment=alignment or center_alignment,
+        alignment=(
+            alignment
+            or center_alignment
+        ),
         number_format=number_format,
     )
 
@@ -805,35 +1074,48 @@ def merge_and_write(
     ws,
     start_row: int,
     end_row: int,
-    column: int,
+    start_column: int,
     value: Any,
     *,
+    end_column: int | None = None,
     fill=None,
     font=None,
     alignment=None,
+    border=None,
 ):
-    """
-    Merge a hierarchy cell and write ONLY to the
-    top-left cell.
-
-    This is safe with openpyxl.
-    """
 
     if end_row < start_row:
         return
 
-    if end_row > start_row:
+    if end_column is None:
+        end_column = start_column
+
+    if end_column < start_column:
+        return
+
+    # --------------------------------------------------------
+    # Merge
+    # --------------------------------------------------------
+
+    if (
+        end_row > start_row
+        or end_column > start_column
+    ):
 
         ws.merge_cells(
             start_row=start_row,
-            start_column=column,
+            start_column=start_column,
             end_row=end_row,
-            end_column=column,
+            end_column=end_column,
         )
+
+    # --------------------------------------------------------
+    # Top-left cell
+    # --------------------------------------------------------
 
     cell = ws.cell(
         row=start_row,
-        column=column,
+        column=start_column,
         value=value,
     )
 
@@ -841,21 +1123,44 @@ def merge_and_write(
         cell,
         fill=fill,
         font=font or font_body_bold,
-        alignment=alignment or top_left_alignment,
+        alignment=(
+            alignment
+            or center_alignment
+        ),
+        border=False,
     )
 
-    # Apply borders to every cell in the merged area.
-    for r in range(start_row, end_row + 1):
+    # --------------------------------------------------------
+    # Apply fill and border to every
+    # cell in merged range.
+    # --------------------------------------------------------
 
-        merged_cell = ws.cell(
-            row=r,
-            column=column,
-        )
+    border_to_use = (
+        border
+        or thin_border
+    )
 
-        merged_cell.border = thin_border
+    for r in range(
+        start_row,
+        end_row + 1,
+    ):
 
-        if fill is not None:
-            merged_cell.fill = fill
+        for c in range(
+            start_column,
+            end_column + 1,
+        ):
+
+            merged_cell = ws.cell(
+                row=r,
+                column=c,
+            )
+
+            merged_cell.border = (
+                border_to_use
+            )
+
+            if fill is not None:
+                merged_cell.fill = fill
 
     return cell
 
@@ -901,27 +1206,29 @@ def build_header(
 
     # --------------------------------------------------------
     # Timeline
-    #
-    # 12 months => 16 timeline columns:
-    #
-    # Q1 Jan Feb Mar
-    # Q2 Apr May Jun
-    # Q3 Jul Aug Sep
-    # Q4 Oct Nov Dec
     # --------------------------------------------------------
 
     column = 8
 
-    for index, month in enumerate(timeline):
+    for index, month in enumerate(
+        timeline
+    ):
 
         if index % 3 == 0:
 
-            quarter_index = index // 3
+            quarter_index = (
+                index // 3
+            )
 
             quarter = (
                 QUARTERS[quarter_index]
-                if quarter_index < len(QUARTERS)
-                else f"Q{quarter_index + 1}"
+                if (
+                    quarter_index
+                    < len(QUARTERS)
+                )
+                else (
+                    f"Q{quarter_index + 1}"
+                )
             )
 
             quarter_cell = ws.cell(
@@ -930,10 +1237,21 @@ def build_header(
                 value=quarter,
             )
 
-            quarter_cell.fill = quarter_header_fill
-            quarter_cell.font = font_header
-            quarter_cell.alignment = center_alignment
-            quarter_cell.border = thin_border
+            quarter_cell.fill = (
+                quarter_header_fill
+            )
+
+            quarter_cell.font = (
+                font_header
+            )
+
+            quarter_cell.alignment = (
+                center_alignment
+            )
+
+            quarter_cell.border = (
+                thin_border
+            )
 
             column += 1
 
@@ -943,10 +1261,21 @@ def build_header(
             value=month,
         )
 
-        month_cell.fill = green_header_fill
-        month_cell.font = font_header_small
-        month_cell.alignment = center_alignment
-        month_cell.border = thin_border
+        month_cell.fill = (
+            green_header_fill
+        )
+
+        month_cell.font = (
+            font_header_small
+        )
+
+        month_cell.alignment = (
+            center_alignment
+        )
+
+        month_cell.border = (
+            thin_border
+        )
 
         column += 1
 
@@ -974,42 +1303,36 @@ def write_indicator(
     )
 
     # ========================================================
-    # INDICATOR CALCULATION
+    # CALCULATION
     # ========================================================
 
     if enact:
 
-        # ----------------------------------------------------
-        # JSX assumes:
-        #
-        # [0] = counsellors
-        # [1] = score
-        # ----------------------------------------------------
-
         dm1 = (
             disaggregations[0].get(
                 "months"
-            ) or []
+            )
+            or []
         )
 
         dm2 = (
             disaggregations[1].get(
                 "months"
-            ) or []
-        )
-
-        each_month_label, each_quarter_label = (
-            calculate_enact(
-                dm1,
-                dm2,
             )
+            or []
         )
 
-        # JSX:
-        # monthsSum = eachMonthLabel
-        # totalAchievement = eachMonthLabel.length
-        # percentAchieved = "-"
-        months_sum = each_month_label
+        (
+            each_month_label,
+            each_quarter_label,
+        ) = calculate_enact(
+            dm1,
+            dm2,
+        )
+
+        months_sum = (
+            each_month_label
+        )
 
         total_target = sum(
             safe_number(
@@ -1022,15 +1345,13 @@ def write_indicator(
             each_month_label
         )
 
-        percent_achieved = "-"
-
     else:
 
         (
             months_sum,
             total_target,
             total_achievement,
-            percent_achieved,
+            _,
         ) = normal_indicator_calculation(
             indicator,
             month_count,
@@ -1044,30 +1365,54 @@ def write_indicator(
 
     indicator_name = indicator.get(
         "name",
-        "",
+        indicator.get(
+            "indicator",
+            "",
+        ),
     )
+
+    # --------------------------------------------------------
+    # Indicator
+    #
+    # ENACT intentionally has NO yellow fill.
+    # --------------------------------------------------------
 
     write_cell(
         ws,
         row,
         4,
         indicator_name,
-        fill=yellow_fill if enact else None,
-        font=font_enact if enact else font_body_bold,
-        alignment=left_alignment,
+        font=(
+            font_enact
+            if enact
+            else font_body_bold
+        ),
+        alignment=center_alignment,
     )
+
+    # --------------------------------------------------------
+    # Target
+    # --------------------------------------------------------
 
     write_cell(
         ws,
         row,
         5,
-        clean_number(total_target),
-        fill=yellow_fill if enact else None,
-        font=font_enact if enact else font_body,
+        clean_number(
+            total_target
+        ),
+        font=(
+            font_enact
+            if enact
+            else font_body
+        ),
         alignment=center_alignment,
     )
 
-    # ENACT total achievement = number of monthly labels
+    # --------------------------------------------------------
+    # Total Achievement
+    # --------------------------------------------------------
+
     write_cell(
         ws,
         row,
@@ -1075,10 +1420,17 @@ def write_indicator(
         clean_number(
             total_achievement
         ),
-        fill=yellow_fill if enact else None,
-        font=font_enact if enact else font_body,
+        font=(
+            font_enact
+            if enact
+            else font_body
+        ),
         alignment=center_alignment,
     )
+
+    # --------------------------------------------------------
+    # Percentage
+    # --------------------------------------------------------
 
     if enact:
 
@@ -1087,7 +1439,6 @@ def write_indicator(
             row,
             7,
             "-",
-            fill=yellow_fill,
             font=font_enact,
             alignment=center_alignment,
         )
@@ -1102,8 +1453,12 @@ def write_indicator(
                 safe_number(
                     total_achievement
                 )
-                / safe_number(total_target)
-                if safe_number(total_target)
+                / safe_number(
+                    total_target
+                )
+                if safe_number(
+                    total_target
+                )
                 else 0
             ),
             font=font_body,
@@ -1112,7 +1467,7 @@ def write_indicator(
         )
 
     # ========================================================
-    # TIMELINE FOR INDICATOR
+    # TIMELINE
     # ========================================================
 
     column = 8
@@ -1135,14 +1490,20 @@ def write_indicator(
 
             if enact:
 
-                quarter_index = i // 3
+                quarter_index = (
+                    i // 3
+                )
 
                 quarter_value = (
                     each_quarter_label[
                         quarter_index
                     ]
-                    if quarter_index
-                    < len(each_quarter_label)
+                    if (
+                        quarter_index
+                        < len(
+                            each_quarter_label
+                        )
+                    )
                     else ""
                 )
 
@@ -1178,45 +1539,33 @@ def write_indicator(
         column += 1
 
         # ----------------------------------------------------
-        # Three months
+        # Months
         # ----------------------------------------------------
 
         for value in chunk:
 
-            if enact:
-
-                write_cell(
-                    ws,
-                    row,
-                    column,
-                    value,
-                    fill=green_light_fill,
-                    font=font_enact,
-                    alignment=center_alignment,
-                )
-
-            else:
-
-                write_cell(
-                    ws,
-                    row,
-                    column,
-                    clean_number(
-                        safe_number(value)
-                    ),
-                    fill=green_light_fill,
-                    font=font_body,
-                    alignment=center_alignment,
-                )
+            write_cell(
+                ws,
+                row,
+                column,
+                value
+                if enact
+                else clean_number(
+                    safe_number(value)
+                ),
+                fill=green_light_fill,
+                font=(
+                    font_enact
+                    if enact
+                    else font_body
+                ),
+                alignment=center_alignment,
+            )
 
             column += 1
 
     # ========================================================
-    # DISAGGREGATION ROWS
-    #
-    # IMPORTANT:
-    # These are NEVER merged.
-    # This prevents the MergedCell error.
+    # DISAGGREGATIONS
     # ========================================================
 
     current_row = row + 1
@@ -1254,7 +1603,7 @@ def write_indicator(
             4,
             d_name,
             font=font_small,
-            alignment=left_alignment,
+            alignment=center_alignment,
         )
 
         # ----------------------------------------------------
@@ -1265,7 +1614,9 @@ def write_indicator(
             ws,
             current_row,
             5,
-            clean_number(d_target),
+            clean_number(
+                d_target
+            ),
             font=font_small,
             alignment=center_alignment,
         )
@@ -1278,7 +1629,9 @@ def write_indicator(
             ws,
             current_row,
             6,
-            clean_number(d_total),
+            clean_number(
+                d_total
+            ),
             font=font_small,
             alignment=center_alignment,
         )
@@ -1319,8 +1672,6 @@ def write_indicator(
                 i:i + 3
             ]
 
-            # Quarter is only rendered if
-            # exactly 3 months exist, matching JSX.
             if len(quarter_chunk) == 3:
 
                 quarter_value = sum(
@@ -1342,7 +1693,9 @@ def write_indicator(
 
             column += 1
 
-            for month_value in quarter_chunk:
+            for month_value in (
+                quarter_chunk
+            ):
 
                 write_cell(
                     ws,
@@ -1362,7 +1715,6 @@ def write_indicator(
 
         current_row += 1
 
-    # Return the next free row
     return current_row
 
 
@@ -1395,26 +1747,21 @@ def write_output(
 
     end_row = row - 1
 
-    # --------------------------------------------------------
-    # Output hierarchy cell
-    #
-    # Only this hierarchy cell is merged.
-    # We write only to start_row.
-    # --------------------------------------------------------
+    if end_row >= start_row:
 
-    merge_and_write(
-        ws,
-        start_row,
-        end_row,
-        3,
-        output.get(
-            "name",
-            "",
-        ),
-        fill=gray_fill,
-        font=font_body_bold,
-        alignment=top_left_alignment,
-    )
+        merge_and_write(
+            ws,
+            start_row,
+            end_row,
+            3,
+            output.get(
+                "name",
+                "",
+            ),
+            fill=gray_fill,
+            font=font_body_bold,
+            alignment=center_alignment,
+        )
 
     return row
 
@@ -1448,25 +1795,623 @@ def write_outcome(
 
     end_row = row - 1
 
-    # --------------------------------------------------------
-    # Outcome hierarchy cell
-    # --------------------------------------------------------
+    if end_row >= start_row:
 
-    merge_and_write(
-        ws,
-        start_row,
-        end_row,
-        2,
-        outcome.get(
-            "name",
-            "",
-        ),
-        fill=gray_fill,
-        font=font_body_bold,
-        alignment=top_left_alignment,
-    )
+        merge_and_write(
+            ws,
+            start_row,
+            end_row,
+            2,
+            outcome.get(
+                "name",
+                "",
+            ),
+            fill=gray_fill,
+            font=font_body_bold,
+            alignment=center_alignment,
+        )
 
     return row
+
+
+# ============================================================
+# ISP3 INDICATOR WRITER
+# ============================================================
+
+def write_isp3_indicator(
+    ws,
+    row: int,
+    indicator: Dict[str, Any],
+    timeline: List[str],
+) -> int:
+
+    disaggregations = indicator.get(
+        "disaggregation",
+        []
+    )
+
+    month_count = len(timeline)
+
+    enact = is_enact_indicator(
+        indicator
+    )
+
+    # ========================================================
+    # CALCULATION
+    # ========================================================
+
+    if enact:
+
+        dm1 = (
+            disaggregations[0].get(
+                "months"
+            )
+            or []
+        )
+
+        dm2 = (
+            disaggregations[1].get(
+                "months"
+            )
+            or []
+        )
+
+        (
+            each_month_label,
+            each_quarter_label,
+        ) = calculate_enact(
+            dm1,
+            dm2,
+        )
+
+        months_sum = (
+            each_month_label
+        )
+
+        total_target = sum(
+            safe_number(
+                d.get("target", 0)
+            )
+            for d in disaggregations
+        )
+
+        total_achievement = len(
+            each_month_label
+        )
+
+    else:
+
+        (
+            months_sum,
+            total_target,
+            total_achievement,
+            _,
+        ) = normal_indicator_calculation(
+            indicator,
+            month_count,
+        )
+
+        each_quarter_label = []
+
+    # ========================================================
+    # INDICATOR
+    # ========================================================
+
+    indicator_name = (
+        indicator.get(
+            "indicator",
+            indicator.get(
+                "name",
+                "",
+            ),
+        )
+    )
+
+    # --------------------------------------------------------
+    # Indicator
+    #
+    # No yellow fill for ENACT.
+    # --------------------------------------------------------
+
+    write_cell(
+        ws,
+        row,
+        4,
+        indicator_name,
+        font=(
+            font_enact
+            if enact
+            else font_body_bold
+        ),
+        alignment=center_alignment,
+    )
+
+    # --------------------------------------------------------
+    # Target
+    # --------------------------------------------------------
+
+    write_cell(
+        ws,
+        row,
+        5,
+        clean_number(
+            total_target
+        ),
+        font=(
+            font_enact
+            if enact
+            else font_body
+        ),
+        alignment=center_alignment,
+    )
+
+    # --------------------------------------------------------
+    # Achievement
+    # --------------------------------------------------------
+
+    write_cell(
+        ws,
+        row,
+        6,
+        clean_number(
+            total_achievement
+        ),
+        font=(
+            font_enact
+            if enact
+            else font_body
+        ),
+        alignment=center_alignment,
+    )
+
+    # --------------------------------------------------------
+    # Percentage
+    # --------------------------------------------------------
+
+    if enact:
+
+        write_cell(
+            ws,
+            row,
+            7,
+            "-",
+            font=font_enact,
+            alignment=center_alignment,
+        )
+
+    else:
+
+        write_cell(
+            ws,
+            row,
+            7,
+            (
+                safe_number(
+                    total_achievement
+                )
+                / safe_number(
+                    total_target
+                )
+                if safe_number(
+                    total_target
+                )
+                else 0
+            ),
+            font=font_body,
+            alignment=center_alignment,
+            number_format="0.00%",
+        )
+
+    # ========================================================
+    # TIMELINE
+    # ========================================================
+
+    column = 8
+
+    for i in range(
+        0,
+        month_count,
+        3,
+    ):
+
+        chunk = months_sum[
+            i:i + 3
+        ]
+
+        # ----------------------------------------------------
+        # Quarter
+        # ----------------------------------------------------
+
+        if len(chunk) == 3:
+
+            if enact:
+
+                quarter_index = (
+                    i // 3
+                )
+
+                quarter_value = (
+                    each_quarter_label[
+                        quarter_index
+                    ]
+                    if (
+                        quarter_index
+                        < len(
+                            each_quarter_label
+                        )
+                    )
+                    else ""
+                )
+
+                write_cell(
+                    ws,
+                    row,
+                    column,
+                    quarter_value,
+                    fill=quarter_body_fill,
+                    font=font_enact,
+                    alignment=center_alignment,
+                )
+
+            else:
+
+                quarter_value = sum(
+                    safe_number(v)
+                    for v in chunk
+                )
+
+                write_cell(
+                    ws,
+                    row,
+                    column,
+                    clean_number(
+                        quarter_value
+                    ),
+                    fill=quarter_body_fill,
+                    font=font_body,
+                    alignment=center_alignment,
+                )
+
+        column += 1
+
+        # ----------------------------------------------------
+        # Months
+        # ----------------------------------------------------
+
+        for value in chunk:
+
+            write_cell(
+                ws,
+                row,
+                column,
+                value
+                if enact
+                else clean_number(
+                    safe_number(value)
+                ),
+                fill=green_light_fill,
+                font=(
+                    font_enact
+                    if enact
+                    else font_body
+                ),
+                alignment=center_alignment,
+            )
+
+            column += 1
+
+    # ========================================================
+    # DISAGGREGATIONS
+    # ========================================================
+
+    current_row = row + 1
+
+    for disagg in disaggregations:
+
+        d_name = disagg.get(
+            "name",
+            "",
+        )
+
+        d_months = ensure_months(
+            disagg.get("months"),
+            month_count,
+        )
+
+        d_target = safe_number(
+            disagg.get(
+                "target",
+                0,
+            )
+        )
+
+        d_total = sum(
+            d_months
+        )
+
+        # ----------------------------------------------------
+        # Name
+        # ----------------------------------------------------
+
+        write_cell(
+            ws,
+            current_row,
+            4,
+            d_name,
+            font=font_small,
+            alignment=center_alignment,
+        )
+
+        # ----------------------------------------------------
+        # Target
+        # ----------------------------------------------------
+
+        write_cell(
+            ws,
+            current_row,
+            5,
+            clean_number(
+                d_target
+            ),
+            font=font_small,
+            alignment=center_alignment,
+        )
+
+        # ----------------------------------------------------
+        # Achievement
+        # ----------------------------------------------------
+
+        write_cell(
+            ws,
+            current_row,
+            6,
+            clean_number(
+                d_total
+            ),
+            font=font_small,
+            alignment=center_alignment,
+        )
+
+        # ----------------------------------------------------
+        # Percentage
+        # ----------------------------------------------------
+
+        d_percent = (
+            d_total / d_target
+            if d_target
+            else 0
+        )
+
+        write_cell(
+            ws,
+            current_row,
+            7,
+            d_percent,
+            font=font_small,
+            alignment=center_alignment,
+            number_format="0.00%",
+        )
+
+        # ----------------------------------------------------
+        # Timeline
+        # ----------------------------------------------------
+
+        column = 8
+
+        for i in range(
+            0,
+            month_count,
+            3,
+        ):
+
+            quarter_chunk = d_months[
+                i:i + 3
+            ]
+
+            if len(quarter_chunk) == 3:
+
+                quarter_value = sum(
+                    safe_number(v)
+                    for v in quarter_chunk
+                )
+
+                write_cell(
+                    ws,
+                    current_row,
+                    column,
+                    clean_number(
+                        quarter_value
+                    ),
+                    fill=quarter_body_fill,
+                    font=font_small,
+                    alignment=center_alignment,
+                )
+
+            column += 1
+
+            for month_value in (
+                quarter_chunk
+            ):
+
+                write_cell(
+                    ws,
+                    current_row,
+                    column,
+                    clean_number(
+                        safe_number(
+                            month_value
+                        )
+                    ),
+                    fill=green_light_fill,
+                    font=font_small,
+                    alignment=center_alignment,
+                )
+
+                column += 1
+
+        current_row += 1
+
+    return current_row
+
+
+# ============================================================
+# ISP3 WRITER
+# ============================================================
+
+def write_isp3(
+    ws,
+    row: int,
+    isp3: Dict[str, Any],
+    timeline: List[str],
+) -> int:
+
+    start_row = row
+
+    indicators = isp3.get(
+        "indicators",
+        []
+    )
+
+    # --------------------------------------------------------
+    # Indicators
+    # --------------------------------------------------------
+
+    for indicator in indicators:
+
+        row = write_isp3_indicator(
+            ws,
+            row,
+            indicator,
+            timeline,
+        )
+
+    end_row = row - 1
+
+    # --------------------------------------------------------
+    # ISP3 hierarchy
+    #
+    # A:C merged vertically and
+    # horizontally.
+    # --------------------------------------------------------
+
+    if end_row >= start_row:
+
+        isp3_text = isp3.get(
+            "isp3",
+            "",
+        )
+
+        merge_and_write(
+            ws,
+            start_row,
+            end_row,
+            1,
+            isp3_text,
+            end_column=3,
+            fill=isp3_body_fill,
+            font=font_isp3,
+            alignment=isp3_alignment,
+        )
+
+    return row
+
+
+# ============================================================
+# ISP3 SECTION TITLE
+# ============================================================
+
+def write_isp3_section_title(
+    ws,
+    row: int,
+    timeline: List[str],
+) -> int:
+
+    timeline_column_count = (
+        len(timeline)
+        + (
+            len(timeline) // 3
+        )
+    )
+
+    total_columns = (
+        7
+        + timeline_column_count
+    )
+
+    # --------------------------------------------------------
+    # Merge complete row
+    # --------------------------------------------------------
+
+    ws.merge_cells(
+        start_row=row,
+        start_column=1,
+        end_row=row,
+        end_column=total_columns,
+    )
+
+    # --------------------------------------------------------
+    # Style every cell in section
+    # --------------------------------------------------------
+
+    for column in range(
+        1,
+        total_columns + 1,
+    ):
+
+        cell = ws.cell(
+            row=row,
+            column=column,
+        )
+
+        cell.fill = (
+            isp3_section_fill
+        )
+
+        cell.border = (
+            section_border
+        )
+
+        cell.alignment = (
+            center_alignment
+        )
+
+    # --------------------------------------------------------
+    # Only top-left cell gets the value
+    # --------------------------------------------------------
+
+    cell = ws.cell(
+        row=row,
+        column=1,
+        value="ISP3",
+    )
+
+    cell.fill = (
+        isp3_section_fill
+    )
+
+    cell.font = (
+        font_isp3_section
+    )
+
+    cell.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True,
+    )
+
+    cell.border = (
+        section_border
+    )
+
+    # --------------------------------------------------------
+    # Larger title row
+    # --------------------------------------------------------
+
+    ws.row_dimensions[
+        row
+    ].height = 42
+
+    return row + 1
 
 
 # ============================================================
@@ -1507,6 +2452,10 @@ def build_monitoring_sheet(
         []
     )
 
+    # ========================================================
+    # OUTCOMES
+    # ========================================================
+
     for outcome in outcomes:
 
         current_row = write_outcome(
@@ -1516,16 +2465,15 @@ def build_monitoring_sheet(
             timeline,
         )
 
-    last_row = current_row - 1
+    outcome_last_row = (
+        current_row - 1
+    )
 
-    # --------------------------------------------------------
-    # Impact / Goal
-    #
-    # Only one merged cell.
-    # This is safe because we write only to row 2.
-    # --------------------------------------------------------
+    # ========================================================
+    # IMPACT / GOAL
+    # ========================================================
 
-    if last_row >= 2:
+    if outcome_last_row >= 2:
 
         impact_text = data.get(
             "impact",
@@ -1535,34 +2483,89 @@ def build_monitoring_sheet(
         merge_and_write(
             ws,
             2,
-            last_row,
+            outcome_last_row,
             1,
             impact_text,
             fill=green_light_fill,
             font=font_body_bold,
-            alignment=top_left_alignment,
+            alignment=center_alignment,
         )
 
-    # --------------------------------------------------------
-    # Header row height
-    # --------------------------------------------------------
+    # ========================================================
+    # ISP3
+    # ========================================================
 
-    ws.row_dimensions[1].height = 42
+    isp3s = data.get(
+        "isp3s",
+        []
+    )
 
-    # --------------------------------------------------------
-    # Body row heights
-    # --------------------------------------------------------
+    if isp3s:
+
+        # ----------------------------------------------------
+        # ISP3 section title
+        # ----------------------------------------------------
+
+        current_row = (
+            write_isp3_section_title(
+                ws,
+                current_row,
+                timeline,
+            )
+        )
+
+        # ----------------------------------------------------
+        # ISP3 blocks
+        # ----------------------------------------------------
+
+        for isp3 in isp3s:
+
+            current_row = write_isp3(
+                ws,
+                current_row,
+                isp3,
+                timeline,
+            )
+
+    last_row = (
+        current_row - 1
+    )
+
+    # ========================================================
+    # ROW HEIGHTS
+    # ========================================================
+
+    ws.row_dimensions[
+        1
+    ].height = 42
 
     for row in range(
         2,
         last_row + 1,
     ):
 
-        ws.row_dimensions[row].height = 30
+        # ISP3 section title
+        if (
+            ws.cell(
+                row=row,
+                column=1,
+            ).value
+            == "ISP3"
+        ):
 
-    # --------------------------------------------------------
-    # Column widths
-    # --------------------------------------------------------
+            ws.row_dimensions[
+                row
+            ].height = 42
+
+        else:
+
+            ws.row_dimensions[
+                row
+            ].height = 30
+
+    # ========================================================
+    # COLUMN WIDTHS
+    # ========================================================
 
     widths = {
         "A": 28,
@@ -1574,7 +2577,9 @@ def build_monitoring_sheet(
         "G": 14,
     }
 
-    for column, width in widths.items():
+    for column, width in (
+        widths.items()
+    ):
 
         ws.column_dimensions[
             column
@@ -1582,9 +2587,6 @@ def build_monitoring_sheet(
 
     # --------------------------------------------------------
     # Timeline widths
-    #
-    # Q column = 16
-    # Month column = 11
     # --------------------------------------------------------
 
     column = 8
@@ -1607,28 +2609,28 @@ def build_monitoring_sheet(
 
         column += 1
 
-    # --------------------------------------------------------
-    # Freeze panes
-    #
-    # Same practical structure as the frontend:
-    # first row + first 4 columns remain visible.
-    # --------------------------------------------------------
+    # ========================================================
+    # FREEZE PANES
+    # ========================================================
 
     # ws.freeze_panes = "E2"
 
-    # --------------------------------------------------------
-    # View
-    # --------------------------------------------------------
+    # ========================================================
+    # VIEW
+    # ========================================================
 
     ws.sheet_view.showGridLines = False
     ws.sheet_view.zoomScale = 90
 
-    # --------------------------------------------------------
-    # Print settings
-    # --------------------------------------------------------
+    # ========================================================
+    # PRINT SETTINGS
+    # ========================================================
 
     ws.page_setup.orientation = "landscape"
-    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.paperSize = (
+        ws.PAPERSIZE_A4
+    )
+
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
 
@@ -1636,27 +2638,27 @@ def build_monitoring_sheet(
 
     ws.print_title_rows = "1:1"
 
-    # --------------------------------------------------------
-    # Margins
-    # --------------------------------------------------------
+    # ========================================================
+    # MARGINS
+    # ========================================================
 
     ws.page_margins.left = 0.25
     ws.page_margins.right = 0.25
     ws.page_margins.top = 0.5
     ws.page_margins.bottom = 0.5
 
-    # --------------------------------------------------------
-    # Print area
-    # --------------------------------------------------------
+    # ========================================================
+    # PRINT AREA
+    # ========================================================
 
     if last_row >= 1:
 
-        last_column = 7
-
-        # 12 months + 4 quarters
-        last_column += (
-            len(timeline)
-            + len(timeline) // 3
+        last_column = (
+            7
+            + len(timeline)
+            + (
+                len(timeline) // 3
+            )
         )
 
         ws.print_area = (
@@ -1723,6 +2725,15 @@ def build_test_info_sheet(
                 )
             ),
         ),
+        (
+            "ISP3",
+            len(
+                data.get(
+                    "isp3s",
+                    [],
+                )
+            ),
+        ),
     ]
 
     for row_index, (
@@ -1738,13 +2749,17 @@ def build_test_info_sheet(
             row_index,
             1,
             key,
-            fill=green_header_fill
-            if row_index == 1
-            else None,
-            font=font_header
-            if row_index == 1
-            else font_body_bold,
-            alignment=left_alignment,
+            fill=(
+                green_header_fill
+                if row_index == 1
+                else None
+            ),
+            font=(
+                font_header
+                if row_index == 1
+                else font_body_bold
+            ),
+            alignment=center_alignment,
         )
 
         write_cell(
@@ -1752,17 +2767,26 @@ def build_test_info_sheet(
             row_index,
             2,
             value,
-            fill=green_header_fill
-            if row_index == 1
-            else None,
-            font=font_header
-            if row_index == 1
-            else font_body,
-            alignment=left_alignment,
+            fill=(
+                green_header_fill
+                if row_index == 1
+                else None
+            ),
+            font=(
+                font_header
+                if row_index == 1
+                else font_body
+            ),
+            alignment=center_alignment,
         )
 
-    ws.column_dimensions["A"].width = 28
-    ws.column_dimensions["B"].width = 45
+    ws.column_dimensions[
+        "A"
+    ].width = 28
+
+    ws.column_dimensions[
+        "B"
+    ].width = 45
 
 
 # ============================================================
@@ -1800,15 +2824,42 @@ def build_enact_test_sheet(
         )
 
     tests = [
-        (1.00, "Excellent Performance"),
-        (0.95, "Excellent Performance"),
-        (0.85, "Good Performance"),
-        (0.75, "Good Performance"),
-        (0.70, "Fair Performance"),
-        (0.65, "Fair Performance"),
-        (0.55, "Needs Improvement"),
-        (0.50, "Needs Improvement"),
-        (0.30, "Poor Performance"),
+        (
+            1.00,
+            "Excellent Performance",
+        ),
+        (
+            0.95,
+            "Excellent Performance",
+        ),
+        (
+            0.85,
+            "Good Performance",
+        ),
+        (
+            0.75,
+            "Good Performance",
+        ),
+        (
+            0.70,
+            "Fair Performance",
+        ),
+        (
+            0.65,
+            "Fair Performance",
+        ),
+        (
+            0.55,
+            "Needs Improvement",
+        ),
+        (
+            0.50,
+            "Needs Improvement",
+        ),
+        (
+            0.30,
+            "Poor Performance",
+        ),
     ]
 
     for row, (
@@ -1852,12 +2903,16 @@ def build_enact_test_sheet(
             ws,
             row,
             3,
-            "PASS"
-            if actual == expected
-            else "FAIL",
-            fill=green_light_fill
-            if actual == expected
-            else orange_fill,
+            (
+                "PASS"
+                if actual == expected
+                else "FAIL"
+            ),
+            fill=(
+                green_light_fill
+                if actual == expected
+                else orange_fill
+            ),
             font=font_body_bold,
             alignment=center_alignment,
         )
@@ -1868,9 +2923,17 @@ def build_enact_test_sheet(
     ws["C1"].alignment = center_alignment
     ws["C1"].border = thin_border
 
-    ws.column_dimensions["A"].width = 15
-    ws.column_dimensions["B"].width = 30
-    ws.column_dimensions["C"].width = 15
+    ws.column_dimensions[
+        "A"
+    ].width = 15
+
+    ws.column_dimensions[
+        "B"
+    ].width = 30
+
+    ws.column_dimensions[
+        "C"
+    ].width = 15
 
 
 # ============================================================
@@ -1881,6 +2944,10 @@ def validate_data(
     data: Dict[str, Any],
 ) -> None:
 
+    # ========================================================
+    # OUTCOMES
+    # ========================================================
+
     outcomes = data.get(
         "outcomes",
         []
@@ -1890,6 +2957,7 @@ def validate_data(
         outcomes,
         list,
     ):
+
         raise ValueError(
             "data.outcomes must be a list"
         )
@@ -1905,8 +2973,10 @@ def validate_data(
             outputs,
             list,
         ):
+
             raise ValueError(
-                "outcome.outputs must be a list"
+                "outcome.outputs "
+                "must be a list"
             )
 
         for output in outputs:
@@ -1920,6 +2990,7 @@ def validate_data(
                 indicators,
                 list,
             ):
+
                 raise ValueError(
                     "output.indicators "
                     "must be a list"
@@ -1927,55 +2998,137 @@ def validate_data(
 
             for indicator in indicators:
 
-                disaggregations = (
-                    indicator.get(
-                        "disaggregation",
-                        []
-                    )
+                validate_indicator(
+                    indicator
                 )
 
-                if not isinstance(
-                    disaggregations,
-                    list,
-                ):
-                    raise ValueError(
-                        "indicator.disaggregation "
-                        "must be a list"
-                    )
+    # ========================================================
+    # ISP3
+    # ========================================================
 
-                # --------------------------------------------
-                # ENACT validation
-                # --------------------------------------------
+    isp3s = data.get(
+        "isp3s",
+        []
+    )
 
-                if is_enact_indicator(
-                    indicator
-                ):
+    if not isinstance(
+        isp3s,
+        list,
+    ):
 
-                    names = [
-                        d.get(
-                            "name",
-                            "",
-                        )
-                        for d in disaggregations
-                    ]
+        raise ValueError(
+            "data.isp3s must be a list"
+        )
 
-                    # JSX uses [0] and [1].
-                    # Therefore order must be preserved.
-                    if names[0] != ENACT_COUNSELLORS:
-                        raise ValueError(
-                            "ENACT indicator has invalid "
-                            "disaggregation order. "
-                            f"Expected '{ENACT_COUNSELLORS}' "
-                            "at index 0."
-                        )
+    for isp3_index, isp3 in enumerate(
+        isp3s
+    ):
 
-                    if names[1] != ENACT_SCORE:
-                        raise ValueError(
-                            "ENACT indicator has invalid "
-                            "disaggregation order. "
-                            f"Expected '{ENACT_SCORE}' "
-                            "at index 1."
-                        )
+        if not isinstance(
+            isp3,
+            dict,
+        ):
+
+            raise ValueError(
+                f"data.isp3s[{isp3_index}] "
+                "must be an object"
+            )
+
+        if "isp3" not in isp3:
+
+            raise ValueError(
+                f"data.isp3s[{isp3_index}] "
+                "is missing 'isp3'"
+            )
+
+        indicators = isp3.get(
+            "indicators",
+            []
+        )
+
+        if not isinstance(
+            indicators,
+            list,
+        ):
+
+            raise ValueError(
+                f"data.isp3s[{isp3_index}]"
+                ".indicators "
+                "must be a list"
+            )
+
+        for indicator in indicators:
+
+            validate_indicator(
+                indicator
+            )
+
+
+def validate_indicator(
+    indicator: Dict[str, Any],
+) -> None:
+
+    if not isinstance(
+        indicator,
+        dict,
+    ):
+
+        raise ValueError(
+            "indicator must be an object"
+        )
+
+    disaggregations = (
+        indicator.get(
+            "disaggregation",
+            []
+        )
+    )
+
+    if not isinstance(
+        disaggregations,
+        list,
+    ):
+
+        raise ValueError(
+            "indicator.disaggregation "
+            "must be a list"
+        )
+
+    # --------------------------------------------------------
+    # ENACT validation
+    # --------------------------------------------------------
+
+    if is_enact_indicator(
+        indicator
+    ):
+
+        names = [
+            d.get(
+                "name",
+                "",
+            )
+            for d in disaggregations
+        ]
+
+        if names[0] != ENACT_COUNSELLORS:
+
+            raise ValueError(
+                "ENACT indicator has invalid "
+                "disaggregation order. "
+                f"Expected "
+                f"'{ENACT_COUNSELLORS}' "
+                "at index 0."
+            )
+
+        if names[1] != ENACT_SCORE:
+
+            raise ValueError(
+                "ENACT indicator has invalid "
+                "disaggregation order. "
+                f"Expected "
+                f"'{ENACT_SCORE}' "
+                "at index 1."
+            )
 
 
 # ============================================================
@@ -1989,9 +3142,7 @@ def main():
     print("=" * 70)
 
     # --------------------------------------------------------
-    # Create test data
-    #
-    # Replace this with your real API data when integrating.
+    # Test data
     # --------------------------------------------------------
 
     data = create_test_data()
@@ -2020,7 +3171,7 @@ def main():
     )
 
     # --------------------------------------------------------
-    # Test information
+    # Test Info
     # --------------------------------------------------------
 
     build_test_info_sheet(
@@ -2029,7 +3180,7 @@ def main():
     )
 
     # --------------------------------------------------------
-    # ENACT tests
+    # ENACT Tests
     # --------------------------------------------------------
 
     build_enact_test_sheet(
@@ -2046,15 +3197,17 @@ def main():
 
     print()
     print(
-        f"Excel file created successfully:"
+        "Excel file created successfully:"
     )
+
     print(
         OUTPUT_FILE
     )
 
     print()
+
     print(
-        f"File size: "
+        "File size: "
         f"{OUTPUT_FILE.stat().st_size:,} bytes"
     )
 

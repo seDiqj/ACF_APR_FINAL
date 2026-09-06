@@ -15,7 +15,7 @@ class StoreProgramRequest extends FormRequest
     {
         return [
             'project_id'           => 'required|exists:projects,id',
-            'name'                 => 'required|min:3',
+            'name'                 => 'required|min:3|max:255',
             'focalPoint'           => 'required|string|max:255',
             'province'             => 'required|exists:provinces,name',
             'district'             => 'required|exists:districts,name',

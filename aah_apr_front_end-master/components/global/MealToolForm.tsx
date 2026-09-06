@@ -191,9 +191,7 @@ const MealToolForm: React.FC<MealToolInterface> = ({
      */
     if (IsCreateMode(mode)) {
       requestHandler()
-        .post(`/main_db/beneficiary/mealtools/${id}`, {
-          mealtool: submittedMealTool,
-        })
+        .post(`/main_db/beneficiary/mealtools/${id}`, submittedMealTool)
         .then((response: any) => {
           reqForToastAndSetMessage(response.data.message, "success");
 

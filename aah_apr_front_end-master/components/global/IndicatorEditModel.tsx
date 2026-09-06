@@ -251,6 +251,8 @@ export const IndicatorModel: React.FC<IndicatorModelInterface> = ({
         });
       });
 
+      console.log(errors)
+
       setFormErrors(errors);
       reqForToastAndSetMessage(
         "Please fix validation errors before submitting.",
@@ -259,12 +261,15 @@ export const IndicatorModel: React.FC<IndicatorModelInterface> = ({
       return;
     }
 
+    console.log(local);
+    
+
     setFormErrors({});
     setIsLoading(true);
 
     if (IsCreateMode(mode)) {
       requestHandler()
-        .post("projects/i/indicator", { indicator: local })
+        .post("projects/i/indicator", local)
         .then((response: any) => {
           const findId = (ref: string) =>
             response.data.data.find((i: any) => i.indicatorRef === ref)?.id;
@@ -501,6 +506,12 @@ export const IndicatorModel: React.FC<IndicatorModelInterface> = ({
         );
     }
   }, [indicatorId, isOpen]);
+
+  useEffect(() => {
+    if (!IsMainDatabase(local)) {
+      setLocal((prev) => ({...prev, type: null}));
+    }
+  }, [local.database]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -851,7 +862,7 @@ export const IndicatorModel: React.FC<IndicatorModelInterface> = ({
           </div>
 
           {/* Sub Indicator Segment Configuration Nested Blocks */}
-          {local.subIndicator && (
+          {local.subIndicator && local.database === "main_database" && (
             <div className="space-y-4 pt-4 border-t border-dashed mt-6">
               <Label className="text-base font-bold text-primary flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-primary" />

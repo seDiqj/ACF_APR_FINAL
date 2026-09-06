@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreTrainingBeneficiaryRequest extends FormRequest
+class UpdateTrainingBeneficiaryRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -17,7 +19,7 @@ class StoreTrainingBeneficiaryRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -29,7 +31,7 @@ class StoreTrainingBeneficiaryRequest extends FormRequest
             'age' => 'required|integer|min:1|max:150',
             'phone' => 'required|min:10|max:20',
             "email" => "required|email",
-            'code' => 'required|unique:beneficiaries,code|max:255',
+            'code' => ['required','max:255', Rule::unique('beneficiaries', 'code')->ignore($this->route('id'))],
             "participantOrganization" => "required|string|min:2|max:255",
             "jobTitle" => "required|string|max:255"
         ];

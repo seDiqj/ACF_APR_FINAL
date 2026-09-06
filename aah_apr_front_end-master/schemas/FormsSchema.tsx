@@ -695,7 +695,6 @@ export const IndicatorSchema = z
     dessaggregationType: z
       .enum(["session", "indevidual", "enact"])
       .or(z.string()),
-    description: z.string().min(1, "Description is required"),
     subIndicator: SubIndicatorSchema.nullable(),
     parent_indicator: z.string().optional(),
   })

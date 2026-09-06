@@ -275,11 +275,14 @@ export default function SessionsPage({
       return;
     }
 
+    console.log(indicators);
+    return;
+
     setButtonLoading(true);
 
     requestHandler()
       .post(`/main_db/sessions/${id}`, {
-        indicators,
+        'indicators' : indicators,
       })
       .then((response: AxiosResponse<any>) => {
         reqForToastAndSetMessage(

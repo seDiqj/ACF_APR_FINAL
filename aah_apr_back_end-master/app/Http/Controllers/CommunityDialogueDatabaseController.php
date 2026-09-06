@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCdDatabaseBeneficiary;
+use App\Http\Requests\StoreCommunityDialogueRequest;
+use App\Http\Requests\UpdateCdDatabaseBeneficiary;
+use App\Http\Requests\UpdateCommunityDialogueRequest;
 use App\Models\Beneficiary;
 use App\Models\BeneficiaryCommunityDialogueSession;
 use App\Models\CommunityDialogue;
@@ -203,22 +207,6 @@ class CommunityDialogueDatabaseController extends Controller
                 "message" => "No community dialogue available !"
             ], 404);
         }
-
-        // $communityDialogues->map(function ($communityDialogue) {
-
-        //     $communityDialogue->program->database = Database::find($communityDialogue->program->database_id)->name;
-
-        //     $communityDialogue->program->projectCode = Project::find($communityDialogue->program->project_id)->projectCode;
-
-        //     $communityDialogue->program->district = District::find($communityDialogue->program->district_id)->name;
-
-        //     $communityDialogue->program->province = Province::find($communityDialogue->program->province_id)->name;
-
-        //     unset($communityDialogue["created_at"], $communityDialogue["updated_at"]);
-        //     unset($communityDialogue->program["created_at"], $communityDialogue->program["updated_at"], $communityDialogue->program["project_id"], $communityDialogue->program["database_id"], $communityDialogue->program["province_id"], $communityDialogue->program["district_id"]);
-
-        //     return $communityDialogue;
-        // });
 
         return response()->json([
             "status" => true,
@@ -460,11 +448,12 @@ class CommunityDialogueDatabaseController extends Controller
         ], 200);
     }
 
-    public function storeBeneficiary (Request $request)
+    public function storeBeneficiary (StoreCdDatabaseBeneficiary $request)
     {
         $communityDialogueDb = Database::where("name", "cd_database")->first();
 
-        if (!$communityDialogueDb) return response()->json(["status" => false, "message" => "Community dialogue is not a valid database !"], 404);
+        if (!$communityDialogueDb) 
+            return response()->json(["status" => false, "message" => "Community dialogue is not a valid database !"], 404);
 
         $communityDialogueDbId = $communityDialogueDb->id;
 
@@ -483,7 +472,7 @@ class CommunityDialogueDatabaseController extends Controller
         
     }
 
-    public function storeCommunityDialogue (Request $request)
+    public function storeCommunityDialogue (StoreCommunityDialogueRequest $request)
     {
         $communityDialogueDatabase = Database::where("name", "cd_database")->first();
 
@@ -491,13 +480,7 @@ class CommunityDialogueDatabaseController extends Controller
 
         $programInformation = $request->input("programInformation");
 
-        $exists = CommunityDialogue::where("name", $programInformation["cdName"])->exists();
-
-        if ($exists) return response()->json(["status" => false, "message" => "Entered community dialogue name has already been used !", "data" => []], 422);
-
         $communityDialogueIndicator = Indicator::find($programInformation["indicator_id"]);
-
-        if (!$communityDialogueDatabase) return response()->json(["status" => false, "message" => "Invalid indicator selected !"], 422);
 
         // temprory
         $programInformation["siteCode"] = "200";
@@ -558,12 +541,12 @@ class CommunityDialogueDatabaseController extends Controller
 
     }
 
-    public function updateBeneficiary (Request $request, string $id)
+
+    public function updateBeneficiary (UpdateCdDatabaseBeneficiary $request, string $id)
     {
         $beneficiary = Beneficiary::find($id);
 
         if (!$beneficiary) return response()->json(["status" => false, "message" => "No such beneficiary in system !"], 404);
-
 
         $validated = $request->all();
 
@@ -573,7 +556,7 @@ class CommunityDialogueDatabaseController extends Controller
 
     }
 
-    public function updateCommunityDialogue(Request $request, $id)
+    public function updateCommunityDialogue(UpdateCommunityDialogueRequest $request, string $id)
     {
         $communityDialogue = CommunityDialogue::find($id);
 
@@ -586,13 +569,6 @@ class CommunityDialogueDatabaseController extends Controller
 
         $programInformation = $request->input("programInformation");
         $communityDialogueIndicator = Indicator::find($programInformation["indicator_id"]);
-
-        if (!$communityDialogueIndicator) {
-            return response()->json([
-                "status" => false,
-                "message" => "Invalid indicator selected!"
-            ], 422);
-        }
 
         $program = $communityDialogue->program;
         $program->update($programInformation);

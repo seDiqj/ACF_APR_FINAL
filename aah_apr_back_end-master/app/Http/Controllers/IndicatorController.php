@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreIndicatorRequest;
+use App\Http\Requests\UpdateIndicatorRequest;
 use App\Models\Database;
 use App\Models\Dessaggregation;
 use App\Models\Indicator;
@@ -31,11 +32,10 @@ class IndicatorController extends Controller
 
     }
 
-    public function store(Request $request)
+    public function store(StoreIndicatorRequest $request)
     {
-        $indicator = $request->input('indicator');
+        $indicator = $request->all();
 
-        
         $createdIndicators = [];
 
         if (!is_array($indicator)) return response()->json(["status" => false, "message" => "Invalid indicator data !"], 422);
@@ -87,8 +87,6 @@ class IndicatorController extends Controller
                 "councilorCount" => $provinceData["councilorCount"]
             ];
         }
-
-        
 
         $main->provinces()->sync($finalProvincesData);
 
@@ -199,7 +197,7 @@ class IndicatorController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateIndicatorRequest $request, $id)
     {
         $indicator = Indicator::find($id);
 
@@ -339,7 +337,6 @@ class IndicatorController extends Controller
             ]
         ], 200);
     }
-
 
     public function destroy($id)
     {

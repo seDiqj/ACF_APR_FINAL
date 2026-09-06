@@ -181,6 +181,7 @@ const CreatePsychoeducation: React.FC<PsychoeducationFormInterface> = ({
       psychoeducationInformation: {},
     });
 
+
     setIsLoading(true);
 
     if (IsCreateMode(mode)) {

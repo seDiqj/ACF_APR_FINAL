@@ -22,9 +22,9 @@ class StoreChapterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "topic" => "required|string",
-            "facilitatorName" => "required|string",
-            "facilitatorJobTitle" => "required|string",
+            "topic" => "required|string|max:500",
+            "facilitatorName" => "required|string|max:255",
+            "facilitatorJobTitle" => "required|string|max:255",
             "startDate" => "required|date",
             "endDate" => "required|date|after_or_equal:startDate"
         ];

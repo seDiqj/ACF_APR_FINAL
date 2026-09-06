@@ -2,16 +2,25 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
-class StoreIndicatorRequest extends FormRequest
+class UpdateIndicatorRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
@@ -23,7 +32,8 @@ class StoreIndicatorRequest extends FormRequest
             'outputId' => 'required|exists:outputs,id',
             'parentIndicator' => 'nullable|exists:indicators,id',
             'target' => 'required|integer',
-            'type' => 'nullable|in:adult_psychosocial_support,child_psychosocial_support,parenting_skills,child_care_practices',
+            'type' => 
+            'nullable|in:adult_psychosocial_support,child_psychosocial_support,parenting_skills,child_care_practices',
             'provinces' => 'required|array',
             'provinces.*.province' => 'required|exists:provinces,name',
             'provinces.*.target' => 'required|integer',

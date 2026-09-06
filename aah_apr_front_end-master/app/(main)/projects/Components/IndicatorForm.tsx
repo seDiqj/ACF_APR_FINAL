@@ -136,7 +136,7 @@ const IndicatorForm: React.FC<IndicatorFormInterface> = ({ mode }) => {
                           >
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                               <span
-                                className="font-semibold text-foreground text-sm truncate"
+                                className="font-semibold text-foreground text-sm truncate max-w-[200px]"
                                 title={indItem.indicator}
                               >
                                 {indItem.indicator}
@@ -147,7 +147,6 @@ const IndicatorForm: React.FC<IndicatorFormInterface> = ({ mode }) => {
                             </div>
 
                             <div className="flex items-center gap-2 sm:justify-end shrink-0">
-                              {/* دکمه حذف - اصلاح باگ فیلتر بر اساس شناسه منحصربه‌فرد شاخص به جای ردیف خطی */}
                               {!readOnly && (
                                 <Button
                                   variant="ghost"
@@ -179,7 +178,6 @@ const IndicatorForm: React.FC<IndicatorFormInterface> = ({ mode }) => {
                                 </Button>
                               )}
 
-                              {/* دکمه‌های نمایش و ویرایش */}
                               {indItem.id && (
                                 <Button
                                   variant="ghost"
@@ -222,7 +220,6 @@ const IndicatorForm: React.FC<IndicatorFormInterface> = ({ mode }) => {
           )}
         </CardContent>
 
-        {/* دکمه‌های ناوبری پایدار و هماهنگ */}
         <CardFooter className="p-6 border-t bg-muted/20 flex justify-end">
           {cardsBottomButtons(
             setCurrentTab,
@@ -235,7 +232,6 @@ const IndicatorForm: React.FC<IndicatorFormInterface> = ({ mode }) => {
         </CardFooter>
       </Card>
 
-      {/* مدال‌های داینامیک ثبت، ویرایش و نمایش شاخص */}
       {IsNotShowMode(mode) && reqForIndicatorForm && (
         <IndicatorModel
           isOpen={reqForIndicatorForm}

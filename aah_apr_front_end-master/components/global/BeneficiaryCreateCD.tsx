@@ -46,13 +46,6 @@ const BeneficiaryCreateCD: React.FC<
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [registrationDateValidRange] = useState<{
-    start: string;
-    end: string;
-  }>({
-    start: "2025-01-01",
-    end: "2025-02-01",
-  });
 
   const handleFormChange = (e: any) => {
     const { name, value } = e.target;
@@ -442,8 +435,6 @@ const BeneficiaryCreateCD: React.FC<
                   type="date"
                   onChange={handleFormChange}
                   className={inputClassName("dateOfRegistration")}
-                  min={registrationDateValidRange.start}
-                  max={registrationDateValidRange.end}
                 />
 
                 <ErrorMessage field="dateOfRegistration" />

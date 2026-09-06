@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Helpers\LogHelpers;
 use App\Http\Requests\StoreBeneficiaryRequest;
+use App\Http\Requests\StoreMainDatabaseBeneficiaryRequest;
+use App\Http\Requests\StoreMealToolRequest;
+use App\Http\Requests\UpdateMainDatabaseBeneficiaryRequest;
+use App\Http\Requests\UpdateMealToolRequest;
 use App\Models\Beneficiary;
 use App\Models\Database;
 use App\Models\District;
@@ -378,11 +382,10 @@ class MainDatabaseController extends Controller
 
     }
 
-    public function storeBeneficiary(StoreBeneficiaryRequest $request) 
+
+    public function storeBeneficiary(StoreMainDatabaseBeneficiaryRequest $request) 
     {
         $program = Program::with("project")->find($request->input("program"));
-
-        if (!$program) return response()->json(["status" => false, "message" => "No such program in system !", "data" => []], 404);
 
         $dateOfRegistration = Carbon::parse($request->input("dateOfRegistration"))->startOfDay();
         $projectStartDate = Carbon::parse($program->project->startDate)->startOfDay();
@@ -407,14 +410,13 @@ class MainDatabaseController extends Controller
 
     }
 
-    public function storeMealtool(Request $request, string $id) 
+    public function storeMealtool(StoreMealToolRequest $request, string $id) 
     {
-
         $beneficiary = Beneficiary::find($id);
 
         if (!$beneficiary) return response()->json(["status" => false, "message" => "No such beneficiary in system !"], 404);
 
-        $mealtool = $request->input("mealtool");
+            $mealtool = $request->validated();
 
         $createdMealtool = $beneficiary->mealTools()->create($mealtool);
 
@@ -514,7 +516,7 @@ class MainDatabaseController extends Controller
 
     }
 
-    public function updateBeneficiary(Request $request, string $id) {
+    public function updateBeneficiary(UpdateMainDatabaseBeneficiaryRequest $request, string $id) {
 
         $mainDatabaseFromDb = Database::where("name", "main_database")->first();
 
@@ -522,16 +524,15 @@ class MainDatabaseController extends Controller
 
         $beneficiary = Beneficiary::find($id);
 
-        if (!$beneficiary) return response()->json(["statue" => false, "message" => "No such beneficiary in system !"], 404);
+        if (!$beneficiary) return response()->json(["status" => false, "message" => "No such beneficiary in system !"], 404);
 
         $beneficiary->programs()->sync([
             $request->input("program") => [
                 "database_id" => $mainDatabaseFromDb->id
             ],
-            
         ]);
 
-        $beneficiary->update($request->bnfData);
+        $beneficiary->update($request->except("program"));
 
         return response()->json(["status" => true, "message" => "Beneficiary successfully updated !"], 200);
 
@@ -556,16 +557,15 @@ class MainDatabaseController extends Controller
         
     }
 
-    public function updateMealtool (Request $request, string $id)
+    public function updateMealtool (UpdateMealToolRequest $request, string $id)
     {
-
         $mealTool = MealTool::find($id);
 
         if (!$mealTool)
             return response()->json(["status" => false, "message" => "No such mealtool in system !", "data" => []], 404);
 
 
-        $mt = $request->all();
+        $mt = $request->validated();
 
         $mealTool->update($mt);
 

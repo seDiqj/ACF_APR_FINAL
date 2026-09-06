@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Jobs\GenerateApr;
 
 
-
 class AprController extends Controller
 {
 

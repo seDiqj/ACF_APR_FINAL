@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Validator;
 
 class StoreTrainingRequest extends FormRequest
 {
@@ -33,6 +36,41 @@ class StoreTrainingRequest extends FormRequest
             'chapters.*.facilitatorJobTitle' => 'required_with:chapters|string|max:255',
             'chapters.*.startDate'           => 'required_with:chapters|date',
             'chapters.*.endDate'             => 'required_with:chapters|date|after_or_equal:chapters.*.startDate',
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+
+                $project = Project::find ($this->input('project_id'));
+
+                $trainingStartDate = Carbon::parse($this->input('startDate'));
+                $trainingEndDate = Carbon::parse($this->input('endDate'));
+
+                $projectStartDate = Carbon::parse($project->startDate);
+                $projectEndDate = Carbon::parse($project->endDate);
+
+                if ($trainingStartDate->lt($projectStartDate)) {
+
+                    $validator->errors()->add(
+                        'startDate',
+                        'Training start date should be not before selected project start date !'
+                    );
+
+                    return;
+                }
+
+                if ($trainingEndDate->gt($projectEndDate)) {
+
+                    $validator->errors()->add(
+                        'endDate',
+                        'Training end date should be not after selected project end date'
+                    );
+
+                }
+            }
         ];
     }
 }
