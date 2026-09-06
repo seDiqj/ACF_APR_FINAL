@@ -1,0 +1,1031 @@
+"use client"
+
+import { MultiSelect } from "@/components/multi-select";
+import { SingleSelect } from "@/components/single-select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Edit, Eye, Plus, Trash } from "lucide-react";
+import { Indicator, Output, Project } from "../types/Types";
+import React, { useEffect, useState } from "react";
+import { useParentContext } from "@/contexts/ParentContext";
+import calculateEachIndicatorProvinceTargetAccordingTONumberOFCouncilorCount, { calculateEachSubIndicatorProvinceTargetAccordingTONumberOFCouncilorCount } from "@/lib/IndicatorProvincesTargetCalculator";
+import { IndicatorFormSchema } from "@/schemas/FormsSchema";
+import { handleDelete } from "../utils/CommonFunctions";
+import IndicatorModel from "@/components/global/IndicatorEditModel";
+import { useProjectEditContext } from "../edit_project/[id]/page";
+import { useProjectShowContext } from "../project_show/[id]/page";
+import { useProjectContext } from "../create_new_project/page";
+import { cardsBottomButtons } from "./CardsBottomButtons";
+
+interface ComponentProps {
+    mode: "create" | "edit";
+    readOnly?: boolean;
+}
+
+const IndicatorForm: React.FC<ComponentProps> = ({mode, readOnly}) => {
+
+    const {axiosInstance, reqForToastAndSetMessage} = useParentContext();
+
+    const {outputs, indicators, setIndicators, setCurrentTab, projectProvinces}: {
+        outputs: Output[],
+        indicators: Indicator[],
+        setIndicators:  React.Dispatch<React.SetStateAction<Indicator[]>>,
+        formData: Project,
+        setCurrentTab: React.Dispatch<React.SetStateAction<string>>,
+        projectProvinces: string[]
+    } = mode == "create" ? useProjectContext() : readOnly ? useProjectShowContext() : useProjectEditContext();
+
+    let [openAccordion, setOpenAccordion] = useState<string>("");
+    const [reqForSubIndicator, setReqForSubIndicator] = useState<boolean>(false);
+    const [reqForIndicatorEditModel, setReqForIndicatorEditModel] = useState<Indicator | null>(null);
+    const [reqForIndicatorShowModel, setReqForIndicatorShowModel] = useState<Indicator | null>(null);
+
+    const [indicator, setIndicator] = useState<Indicator>({
+        id: null,
+        outputId: null,
+        outputRef: "",
+        indicator: "",
+        indicatorRef: "",
+        target: 0,
+        status: "notStarted",
+        provinces: [],
+        dessaggregationType: "session",
+        description: "",
+        database: "main_database",
+        type: null,
+        subIndicator: null,
+    });
+
+    const [indicatorFormErrors, setIndicatorFormErrors] = useState<any>({});
+
+    const hundleIndicatorFormChange = (e: any) => {
+        const name: string = e.target.name;
+        const value: string = e.target.value;
+
+        if (name == "dessaggregationType" && value == "enact") 
+        if (reqForSubIndicator) setReqForSubIndicator(false);
+
+        if (name == "subIndicatorName") {
+            setIndicator((prev) => ({
+                ...prev,
+                subIndicator: {
+                    id: prev.subIndicator ? prev.subIndicator.id : null,
+                    indicatorRef: `sub-${prev.indicatorRef}`,
+                    type: prev.subIndicator ? prev.subIndicator.type : null,
+                    dessaggregationType:
+                        indicator.dessaggregationType == "session"
+                        ? "indevidual"
+                        : "session",
+                    target: prev.subIndicator ? prev.subIndicator.target : 0,
+                    provinces: prev.subIndicator ? prev.subIndicator.provinces : [],
+                    name: value,
+                },
+            }));
+            return;
+        }
+
+        if (name == "subIndicatorTarget") {
+            setIndicator((prev) => ({
+                    ...prev,
+                    subIndicator: {
+                    id: prev.subIndicator ? prev.subIndicator.id : null,
+                    indicatorRef: `sub-${prev.indicatorRef}`,
+                    type: prev.subIndicator ? prev.subIndicator.type : null,
+                    dessaggregationType:
+                        indicator.dessaggregationType == "session"
+                        ? "indevidual"
+                        : "session",
+
+                    name: prev.subIndicator ? prev.subIndicator.name : "",
+                    provinces: prev.subIndicator ? prev.subIndicator.provinces : [],
+                    target: value as unknown as number,
+                },
+            }));
+            return;
+        }
+
+        if (name == "subIndicatorProvinceCouncilorCount") {
+        setIndicator((prev) => ({
+            ...prev,
+            subIndicator: {
+            ...prev!.subIndicator!,
+            provinces: prev.subIndicator!.provinces.map((province) => {
+                if (province == e.target.province) {
+                province.councilorCount = value as unknown as number;
+                return province;
+                }
+
+                return province;
+            }),
+            },
+        }));
+        return;
+        }
+
+        if (name == "subIndicatorProvinceTarget") {
+        setIndicator((prev) => ({
+            ...prev,
+            subIndicator: {
+            ...prev!.subIndicator!,
+            provinces: prev.subIndicator!.provinces.map((province) => {
+                if (province == e.target.province) {
+                province.target = value as unknown as number;
+                return province;
+                }
+
+                return province;
+            }),
+            },
+        }));
+        return;
+        }
+
+        setIndicator((prev) => ({
+        ...prev,
+        [name]: value,
+        }));
+    };
+
+    const handleAddSubIndicator = () => {
+        if (
+            indicator.database != "main_database"
+        ) {        
+            reqForToastAndSetMessage("Only main database can have a sub indicator.");
+            return;
+        }
+
+        if (!reqForSubIndicator) {
+        setIndicator((prev) => ({
+            ...prev,
+            subIndicator: {
+            id: null,
+            indicatorRef: `sub-${prev.indicatorRef}`,
+            name: "",
+            target: 0,
+            type: null,
+            dessaggregationType:
+                prev.dessaggregationType === "session"
+                ? "indevidual"
+                : "session",
+            provinces: prev.provinces.map(
+                (province) => ({
+                province: province.province,
+                target: 0,
+                councilorCount: 0,
+                })
+            ),
+            },
+        }));
+
+        setReqForSubIndicator(true);
+        } else {
+        setIndicator((prev) => ({
+            ...prev,
+            subIndicator: null,
+        }));
+
+        setReqForSubIndicator(false);
+        }
+    }
+
+    const handleAddIndicator = (outputRef: string) => {
+    
+        // const result = IndicatorFormSchema.safeParse(indicator);
+    
+        // if (!result.success) {
+        //     const errors: { [key: string]: string } = {};
+        //     result.error.issues.forEach((issue) => {
+        //     const field = issue.path[0];
+        //     if (field) errors[field as string] = issue.message;
+        //     });
+        
+        //     setIndicatorFormErrors(errors);
+        //     reqForToastAndSetMessage("Please fix validation errors before submitting.");
+        //     return;
+        // }
+    
+        // setIndicatorFormErrors({});
+
+        if (indicators.some((ind) => ind.indicatorRef == indicator.indicatorRef)) {
+          reqForToastAndSetMessage("A project can not have two indicators with same referance !")
+          return;
+        }
+    
+        const updatedIndicator = {
+          ...indicator,
+          outputRef: outputRef,
+        };
+    
+        setIndicators((prev) => [...prev, updatedIndicator]);
+    
+        setIndicator({
+          id: null,
+          outputId: null,
+          outputRef: "",
+          indicator: "",
+          indicatorRef: "",
+          target: 0,
+          status: "notStarted",
+          provinces: [],
+          dessaggregationType: "indevidual",
+          database: "",
+          type: null,
+          description: "",
+          subIndicator: null,
+        });
+    
+        setReqForSubIndicator(false);
+    };
+
+    const handleUpdateIndicator = (updatedIndicator: Indicator) => {
+
+        if (indicators.some((indicator) => indicator.indicatorRef == updatedIndicator.indicatorRef && indicator.id != updatedIndicator.id)) {
+            reqForToastAndSetMessage("A project can not have two indicators with same referance !");
+            return;
+        }
+
+        setIndicators((prev) =>
+            prev.map((ind) =>
+                ind.indicatorRef == updatedIndicator.indicatorRef
+                ? updatedIndicator
+                : ind
+            )
+        );
+        axiosInstance
+            .put(`/projects/indicator/${updatedIndicator.id}`, updatedIndicator)
+            .then((response: any) =>
+            {
+                reqForToastAndSetMessage(response.data.message);
+            }
+            )
+            .catch((error: any) =>
+                reqForToastAndSetMessage(error.response.data.message)
+            );
+    }
+
+    const hundleSubmit = () => {
+        axiosInstance
+          .post("projects/i/indicator", {
+                  indicators: indicators.filter((indicator) => indicator.id == null).map((indicator) => {
+                    const correspondingOutputId = outputs.find(
+                      (output) => output.outputRef == indicator.outputRef
+                    )?.id;
+    
+                    indicator.outputId = correspondingOutputId ?? null;
+    
+                    if (!indicator.outputId) {
+                      reqForToastAndSetMessage(
+                        `Indicator with referance ${indicator.indicatorRef} has no valid output \n Note : Before creating some indicators to a output please ensure that the ouput is already stored in database !`
+                      );
+    
+                      return;
+                    } 
+    
+                    const { outputRef, ...updatedIndicatoForApi } = indicator;
+    
+                    return indicator;
+                  }),
+                })
+          .then((response: any) => {
+            reqForToastAndSetMessage(response.data.message);
+              setIndicators((prevIndicators) =>
+                prevIndicators.map((indicator) => {
+                    const backendIndicator = response.data.data.find(
+                    (item: { id: string; indicatorRef: string }) =>
+                        item.indicatorRef === indicator.indicatorRef
+                    );
+
+                    const newIndicatorId = backendIndicator ? backendIndicator.id : indicator.id;
+
+                    let updatedSubIndicator = indicator.subIndicator;
+
+                    if (indicator.subIndicator?.indicatorRef) {
+                        const backendSub = response.data.data.find(
+                            (item: { id: string; indicatorRef: string }) =>
+                            item.indicatorRef === indicator.subIndicator!.indicatorRef
+                        );
+                        if (backendSub) {
+                            updatedSubIndicator = {
+                            ...indicator.subIndicator,
+                            id: backendSub.id,
+                            };
+                        }
+                    }
+
+                    return {
+                        ...indicator,
+                        id: newIndicatorId,
+                        subIndicator: updatedSubIndicator,
+                    };
+                })
+                );
+
+            
+          })
+          .catch((error: any) => {
+            reqForToastAndSetMessage(error.response.data.message);
+          });
+    };
+
+    return (
+        <>
+            <Card className="relative h-full flex flex-col">
+            <CardHeader>
+                <CardTitle>Add Indicator</CardTitle>
+                <CardDescription>
+                    Define each Indicator with its properties.
+                </CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex flex-col gap-6 overflow-auto">
+                <Accordion
+                type="single"
+                collapsible
+                className="w-full"
+                value={openAccordion}
+                onValueChange={setOpenAccordion}
+                >
+                {outputs.filter((o) => o.id != null).map((item, index) => (
+                    <AccordionItem key={index} value={`item-${index}`}>
+                    <AccordionTrigger>{item.output}</AccordionTrigger>
+                    <AccordionContent className="flex flex-col gap-6 max-h-[600px] overflow-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Indicator */}
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor={`indicator-${index}`}>
+                            Indicator
+                            </Label>
+                            <Input
+                                id={`indicator-${index}`}
+                                name="indicator"
+                                value={indicator.indicator}
+                                onChange={hundleIndicatorFormChange}
+                                placeholder="Enter indicator"
+                                className={`border p-2 rounded ${indicatorFormErrors.indicator ? "!border-red-500" : ""}`}
+                                title={indicatorFormErrors.indicator}
+                                disabled={readOnly}
+                            />
+                        </div> 
+
+                        {/* Indicator Reference */}
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor={`indicatorRef-${index}`}>
+                            Indicator Reference
+                            </Label>
+                            <Input
+                            id={`indicatorRef-${index}`}
+                            name="indicatorRef"
+                            value={indicator.indicatorRef}
+                            onChange={hundleIndicatorFormChange}
+                            placeholder="Enter indicator reference..."
+                            className={`border p-2 rounded ${indicatorFormErrors.indicatorRef ? "!border-red-500" : ""}`}
+                            title={indicatorFormErrors.indicatorRef}
+                            disabled={readOnly}
+                            />
+                        </div>
+
+                        {/* Target */}
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor={`target-${index}`}>
+                            Indicator Target
+                            </Label>
+                            <Input
+                                id={`target-${index}`}
+                                name="target"
+                                value={indicator.target}
+                                onChange={hundleIndicatorFormChange}
+                                placeholder="Enter indicator target..."
+                                className={`border p-2 rounded ${indicatorFormErrors.target ? "!border-red-500" : ""}`}
+                                title={indicatorFormErrors.target}
+                                disabled={readOnly}
+                            />
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor={`status-${index}`}>
+                                Indicator Status
+                            </Label>
+                            <SingleSelect
+                                options={[
+                                    { value: "notStarted", label: "Not Started" },
+                                    { value: "inProgress", label: "In Progress" },
+                                    { value: "achived", label: "Achived" },
+                                    { value: "notAchived", label: "Not Achived" },
+                                    {
+                                    value: "partiallyAchived",
+                                    label: "Partially Achived",
+                                    },
+                                ]}
+                                value={indicator.status}
+                                onValueChange={(value: string) => {
+                                    setIndicator((prev) => ({
+                                    ...prev,
+                                    status: value,
+                                    }));
+                                }}
+                                placeholder="Indicator Status"
+                                error={indicatorFormErrors.status}
+                                disabled={readOnly}
+                            />
+                        </div>
+
+                        {/* provinces */}
+                        <div className="flex flex-col gap-1 col-span-full">
+                            <Label htmlFor={`province-${index}`}>
+                            Indicator Provinces
+                            </Label>
+                            <MultiSelect
+                            options={projectProvinces.map((province) => ({
+                                label: province.toLowerCase(),
+                                value:
+                                province.charAt(0).toUpperCase() +
+                                province.slice(1),
+                            }))}
+                            value={indicator.provinces.map(
+                                (province) => province.province
+                            )}
+                            onValueChange={(value: string[]) =>
+                            {
+                                if (!indicator.subIndicator) {
+                                setIndicator((prev) => {
+                                return {
+                                    ...prev,
+                                provinces: value.map((v) => ({
+                                    province: v,
+                                    target: 0,
+                                    councilorCount: 0,
+                                })),
+                                }
+                                })
+                                }else {
+                                setIndicator((prev) => {
+                                return {
+                                    ...prev,
+                                provinces: value.map((v) => ({
+                                    province: v,
+                                    target: 0,
+                                    councilorCount: 0,
+                                })),
+                                subIndicator: {
+                                    ...prev.subIndicator,
+                                    id: prev.subIndicator!.id,
+                                    indicatorRef: prev.subIndicator!.indicatorRef,
+                                    name: prev.subIndicator!.name,
+                                    target: prev.subIndicator!.target,
+                                    type: prev.subIndicator!.type,
+                                    dessaggregationType:
+                                    prev.subIndicator!.dessaggregationType,
+                                    provinces: value.map((v) => ({
+                                    province: v,
+                                    target: 0,
+                                    councilorCount: 0,
+                                    })),
+                                }
+                                }
+                                })
+                                }
+                            }
+                            }
+                            error={indicatorFormErrors.provinces}
+                            disabled={readOnly}
+                            />
+                        </div>
+
+                        {/* Database */}
+                        <div className="flex flex-col gap-1 col-span-full">
+                            <Label>Database</Label>
+                            <SingleSelect
+                            options={[
+                                {
+                                value: "main_database",
+                                label: "Main Database",
+                                },
+                                {
+                                value: "main_database_meal_tool",
+                                label: "Main Database (Target: Meal Tool)",
+                                },
+                                {
+                                value: "kit_database",
+                                label: "Kit Database",
+                                },
+                                {
+                                value: "psychoeducation_database",
+                                label: "Psychoeducation Database",
+                                },
+                                {
+                                value: "cd_database",
+                                label: "Community Dialog Database",
+                                },
+                                {
+                                value: "training_database",
+                                label: "Training Database",
+                                },
+                                {
+                                value: "referral_database",
+                                label: "Referral Database",
+                                },
+                                {
+                                value: "enact_database",
+                                label: "Enact Database",
+                                },
+                            ].filter((opt) => {
+                                if (opt.value == "main_database") {
+                                if (indicators.find((indicator) => indicator.database == "main_database" && indicator.type == "adult_psychosocial_support") 
+                                    && indicators.find((indicator) => indicator.database == "main_database" && indicator.type == "child_psychosocial_support")
+                                && indicators.find((indicator) => indicator.database == "main_database" && indicator.type == "parenting_skills")
+                                && indicators.find((indicator) => indicator.database == "main_database" && indicator.type == "child_care_practices"))
+                                    return false;
+                                
+                                }
+                                return true;
+                            })}
+                            value={indicator.database}
+                            onValueChange={(value: string) =>
+                                setIndicator((prev) => ({
+                                ...prev,
+                                database: value,
+                                dessaggregationType: value == "main_database" ? "session" : value == "enact_database"
+                                ? "enact" : "indevidual"
+                                }))
+                            }
+                            error={indicatorFormErrors.database}
+                            disabled={readOnly}
+                            />
+
+                            {/* Type if the database is main database and the dessaggregation type is not indevidual (backend helper) */}
+                            {(indicator.database == "main_database") && (
+                            <div className="flex flex-col gap-1 col-span-full">
+                                <Label>Type</Label>
+                                <SingleSelect
+                                options={[
+                                    {
+                                    value: "adult_psychosocial_support",
+                                    label: "Adult Psychosocial Support",
+                                    },
+                                    {
+                                    value: "child_psychosocial_support",
+                                    label: "Child Psychosocial Support",
+                                    },
+                                    {
+                                    value: "parenting_skills",
+                                    label: "Parenting Skills",
+                                    },
+                                    {
+                                    value: "child_care_practices",
+                                    label: "Child Care Practices",
+                                    },
+                                ].filter((opt) => !indicators.find((indicator) => (indicator.database == "main_database" && indicator.type == opt.value)))}
+                                value={indicator.type as unknown as string}
+                                onValueChange={(value: string) =>
+                                    setIndicator((prev) => ({
+                                    ...prev,
+                                    type: value,
+                                    }))
+                                }
+                                error={indicator.database == "main_database" ? indicatorFormErrors.type : undefined}
+                                disabled={readOnly}
+                                />
+                            </div>
+                            )}
+
+                            {/* Provinces fields */}
+                            {indicator.provinces && (
+                            <div className="flex flex-col gap-4 mt-4">
+                                <Separator className="my-2" />
+                                {indicator.provinces.map((province, idx) => (
+                                <div
+                                    key={idx}
+                                    className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
+                                >
+                                    <div>
+                                    <span>{province.province}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                    <Label
+                                        htmlFor={`${province.province}-count`}
+                                    >
+                                        Councular Count
+                                    </Label>
+                                    <Input
+                                        id={`${province.province}-count`}
+                                        type="number"
+                                        value={province.councilorCount || 0}
+                                        onChange={(e) => {
+                                        const value = Number(
+                                            e.target.value
+                                        );
+
+                                        setIndicator((prev) => {
+                                            const updatedProvinces =
+                                            prev.provinces.map((p) =>
+                                                p.province ===
+                                                province.province
+                                                ? {
+                                                    ...p,
+                                                    councilorCount: value,
+                                                    }
+                                                : p
+                                            );
+
+                                            calculateEachIndicatorProvinceTargetAccordingTONumberOFCouncilorCount(
+                                            {
+                                                ...prev,
+                                                provinces: updatedProvinces,
+                                            }
+                                            ,setIndicator
+                                            );
+
+                                            return {
+                                            ...prev,
+                                            provinces: updatedProvinces,
+                                            };
+                                        });
+                                        }}
+                                        placeholder={`${
+                                        province.province
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                        province.province
+                                            .slice(1)
+                                            .toLowerCase()
+                                        } Councular Count ...`}
+                                        disabled={readOnly}
+
+                                    />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                    <Label
+                                        htmlFor={`${province.province}-target`}
+                                    >
+                                        Target
+                                    </Label>
+                                    <Input
+                                        id={`${province.province}-target`}
+                                        type="number"
+                                        value={province.target || 0}
+                                        onChange={(e) => {
+                                        const value = Number(
+                                            e.target.value
+                                        );
+                                        setIndicator((prev) => ({
+                                            ...prev,
+                                            provinces: prev.provinces.map(
+                                            (p) =>
+                                                p.province ===
+                                                province.province
+                                                ? {
+                                                    ...p,
+                                                    target: value,
+                                                    }
+                                                : p
+                                            ),
+                                        }));
+                                        }}
+                                        placeholder={`${
+                                        province.province
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                        province.province
+                                            .slice(1)
+                                            .toLowerCase()
+                                        } Target ...`}
+                                        disabled={readOnly}
+                                    />
+                                    </div>
+                                </div>
+                                ))}
+                            </div>
+                            )}
+                        </div>
+                        </div>
+
+                        {/* Dessaggregation Type */}
+                        <div className="flex flex-col gap-1 col-span-full">
+                            <Label htmlFor={`dessaggregationType-${index}`}>
+                                Dessagreggation Type
+                            </Label>
+                            <RadioGroup
+                                name="dessaggregationType"
+                                value={indicator.dessaggregationType}
+                                onValueChange={(value: string) => {
+                                const e = {
+                                    target: {
+                                    name: "dessaggregationType",
+                                    value: value,
+                                    },
+                                };
+                                hundleIndicatorFormChange(e);
+                                }}
+                                className="flex gap-6"
+                            >
+                                {(indicator.database == "main_database") && 
+                                <div className="flex items-center gap-2">
+                                <RadioGroupItem
+                                    value="session"
+                                    id={`r1-${index}`}
+                                    disabled={readOnly}
+                                />
+                                <Label htmlFor={`r1-${index}`}>Session</Label>
+                                </div>}
+                                
+                                {indicator.database != "enact_database" && (
+                                <div className="flex items-center gap-2">
+                                <RadioGroupItem
+                                    value="indevidual"
+                                    id={`r2-${index}`}
+                                    disabled={readOnly}
+                                />
+                                <Label htmlFor={`r2-${index}`}>
+                                    Indevidual
+                                </Label>
+                                </div>
+                                )}  
+                                {indicator.database == "enact_database" && (
+                                <div className="flex items-center gap-2">
+                                <RadioGroupItem
+                                    value="enact"
+                                    id={`r3-${index}`}
+                                    disabled={readOnly}
+                                />
+                                <Label htmlFor={`r3-${index}`}>Enact</Label>
+                                </div>
+                                )}
+                            </RadioGroup>
+                        </div>
+
+                        {/* Description */}
+                        <div className="flex flex-col gap-1 col-span-full">
+                        <Label htmlFor={`description-${index}`}>
+                            Description
+                        </Label>
+                        <Textarea
+                            id={`description-${index}`}
+                            name="description"
+                            value={indicator.description}
+                            onChange={hundleIndicatorFormChange}
+                            placeholder="Enter description..."
+                            disabled={readOnly}
+                            className={`border p-2 rounded ${indicatorFormErrors.description ? "!border-red-500" : ""}`}
+                            title={indicatorFormErrors.description}
+                        />
+                        </div>
+
+                        {/* Sub Indicator (will be showed by a condition) */}
+                        {reqForSubIndicator && (
+                            <div
+                        className={`flex flex-col gap-2 col-span-full ${
+                            reqForSubIndicator ? "block" : "hidden"
+                        }`}
+                        >
+                        <div className="flex flex-row justify-start items-center">
+                            <span>Sub Indicator Details</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Sub indicator name */}
+                            <div className="flex flex-col gap-1">
+                            <Label htmlFor={`sub-name-${index}`}>
+                                Sub Indicator Name
+                            </Label>
+                            <Input
+                                id={`sub-name-${index}`}
+                                name="subIndicatorName"
+                                value={indicator.subIndicator?.name}
+                                onChange={hundleIndicatorFormChange}
+                                placeholder="Enter sub indicator name..."
+                                disabled={readOnly}
+                                // className={`border p-2 rounded ${indicatorFormErrors.target ? "!border-red-500" : ""}`}
+                                // title={indicatorFormErrors.target}
+                            />
+                            </div>
+                            {/* sub indicator target */}
+                            <div className="flex flex-col gap-1">
+                            <Label htmlFor={`sub-target-${index}`}>
+                                Sub Indicator Target
+                            </Label>
+                            <Input
+                                id={`sub-target-${index}`}
+                                name="subIndicatorTarget"
+                                value={indicator.subIndicator?.target}
+                                onChange={hundleIndicatorFormChange}
+                                placeholder="Enter sub indicator target..."
+                                disabled={readOnly}
+                                // className={`border p-2 rounded ${indicatorFormErrors.subIndicator.target ? "!border-red-500" : ""}`}
+                                // title={indicatorFormErrors.subIndicator}
+                            />
+                            </div>
+                        </div>
+
+                        {indicator.provinces &&
+                            indicator.subIndicator?.provinces && (
+                            <div className="flex flex-col gap-4 mt-4">
+                                <Separator className="my-2" />
+                                {indicator.subIndicator.provinces.map(
+                                (province, idx) => (
+                                    <div
+                                    key={idx}
+                                    className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
+                                    >
+                                    <div>
+                                        <span>{province.province}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <Label
+                                        htmlFor={`${province.province}-count`}
+                                        >
+                                        Councular Count
+                                        </Label>
+                                        <Input
+                                        id={`${province.province}-count`}
+                                        type="number"
+                                        name="subIndicatorProvinceCouncilorCount"
+                                        value={province.councilorCount || 0}
+                                        onChange={(e) => {
+                                        const value = Number(
+                                            e.target.value
+                                        );
+                                        setIndicator((prev) => {
+                                            const updatedSubIndicatorProvinces = 
+                                            prev.subIndicator!.provinces.map((p) =>
+                                                p.province == province.province ?
+                                            {
+                                                ...p,
+                                                councilorCount: value
+                                            }:
+                                            p
+                                            )
+
+                                            if (prev.subIndicator)
+                                                calculateEachSubIndicatorProvinceTargetAccordingTONumberOFCouncilorCount(
+                                                {
+                                                    ...prev,
+                                                    subIndicator: {
+                                                    ...prev.subIndicator,
+                                                    provinces: updatedSubIndicatorProvinces
+                                                    },
+                                                }
+                                                ,setIndicator,
+                                                );
+
+                                            return {
+                                            ...prev,
+                                            subIndicator: prev.subIndicator ? {
+                                                ...prev.subIndicator,
+                                                provinces: updatedSubIndicatorProvinces
+                                            } : null,
+                                            };
+                                        });
+                                        }}
+                                        disabled={readOnly}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <Label
+                                        htmlFor={`${province.province}-target`}
+                                        >
+                                        Target
+                                        </Label>
+                                        <Input
+                                        id={`${province.province}-target`}
+                                        type="number"
+                                        name="subIndicatorProvinceTarget"
+                                        value={province.target || 0}
+                                        onChange={(e) => {
+                                            hundleIndicatorFormChange({
+                                            target: {
+                                                province: province,
+                                                name: e.target.name,
+                                                value: e.target.value,
+                                            },
+                                            });
+                                        }}
+                                        disabled={readOnly}
+                                        />
+                                    </div>
+                                    </div>
+                                )
+                                )}
+                            </div>
+                            )}
+                        </div>
+                        )}
+
+                        {/* Buttons */}
+                        {!readOnly && (
+                            <div className="flex justify-end mt-4 gap-2">
+                        <Button
+                            type="button"
+                            className="flex items-center gap-2"
+                            onClick={handleAddSubIndicator}
+                            disabled={
+                            indicator.database != "main_database"
+                            }
+                        >
+                            <Plus size={16} />
+                            {reqForSubIndicator
+                            ? "Remove Sub Indicator"
+                            : "Add Sub Indicator"}
+                        </Button>
+
+                        <Button
+                            type="button"
+                            onClick={() =>
+                            handleAddIndicator(item.outputRef)
+                            }
+                            className="flex items-center gap-2"
+                        >
+                            <Plus size={16} /> Add Indicator
+                        </Button>
+                        </div>
+                        )}
+
+                        {/* indicators list */}
+                        <div className="mt-4 min-h-[240px] overflow-auto border rounded-xl">
+                        {indicators
+                            .filter((ind) => ind.outputRef === item.outputRef)
+                            .map((indItem, indIndex) => (
+                            <div
+                                key={indIndex}
+                                className="flex items-center justify-between px-3 py-2 border-b last:border-b-0"
+                            >
+                                <div className="flex flex-col">
+                                <span className="font-medium">
+                                    {indItem.indicator}
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                    {indItem.indicatorRef}
+                                </span> 
+                                </div>
+                                
+                                <div className="flex flex-row items-center justify-end gap-2">
+                                    {!readOnly && (
+                                    <Trash
+                                        onClick={() =>
+                                        {
+                                            setIndicators((prev) =>
+                                            prev.filter((_, i) => i !== indIndex)
+                                            );
+                                            handleDelete("projects/indicator", indItem.id);
+                                        }
+                                        }
+                                        className="cursor-pointer text-red-500 hover:text-red-700"
+                                        size={18}
+                                        />
+                                    )}
+                                        {indItem.id && (
+                                         readOnly ? <Eye className="cursor-pointer text-orange-500 hover:text-orange-700" onClick={() => setReqForIndicatorShowModel(indItem)} size={18}></Eye> : <Edit className="cursor-pointer text-orange-500 hover:text-orange-700" onClick={() => setReqForIndicatorEditModel(indItem)} size={18}></Edit>
+                                        )}
+                                    </div>
+                            </div>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                    </AccordionItem>
+                ))}
+                </Accordion>
+            </CardContent>
+
+            <CardFooter className="flex flex-row w-full gap-2 items-start justify-end absolute bottom-5">
+                {cardsBottomButtons(setCurrentTab, "output", readOnly? undefined : hundleSubmit, setCurrentTab, "dessaggregation")}
+            </CardFooter>
+            </Card>
+
+            {reqForIndicatorEditModel && (
+                <IndicatorModel
+                    isOpen={!!reqForIndicatorEditModel}
+                    onClose={() => setReqForIndicatorEditModel(null)}
+                    onSave={(indicator) => {
+                        handleUpdateIndicator(indicator);
+
+                        setReqForIndicatorEditModel(null);
+                    }}
+                    indicatorData={reqForIndicatorEditModel}
+                    indicators={indicators}
+                    mode="edit"
+                />
+            )}
+            {reqForIndicatorShowModel && (
+                <IndicatorModel
+                    isOpen={!!reqForIndicatorShowModel}
+                    onClose={() => setReqForIndicatorShowModel(null)}
+                    onSave={(indicator) => {
+                    handleUpdateIndicator(indicator);
+
+                    setReqForIndicatorEditModel(null);
+                    }}
+                    indicatorData={reqForIndicatorShowModel}
+                    indicators={indicators}
+                    mode="show"
+                />
+            )}
+        </>
+    )
+}
+
+export default IndicatorForm;

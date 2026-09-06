@@ -1,0 +1,45 @@
+# Dependencies
+**/node_modules/
+**/vendor/
+
+# Framework build/cache output
+**/.next/
+**/public/build/
+**/storage/framework/cache/
+**/storage/framework/sessions/
+**/storage/framework/views/
+**/storage/logs/*.log
+**/bootstrap/cache/*.php
+**/tsconfig.tsbuildinfo
+
+# Logs and generated report outputs
+**/*.log
+**/*.xlsx
+
+# Python bytecode cache
+**/__pycache__/
+**/*.pyc
+
+# Environment and local secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/.local.env
+.deploy/
+
+# Local archives and generated bundles
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Test/cache output
+**/.phpunit.result.cache
+**/.eslintcache
