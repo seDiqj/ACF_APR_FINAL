@@ -37,10 +37,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/dashboard', [
-        DashboardController::class,
-        'index'
-    ]);
+    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
 });
 
 Route::post('/send-message', [ChatMessageController::class, 'store']);

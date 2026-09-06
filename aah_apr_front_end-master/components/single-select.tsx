@@ -35,6 +35,7 @@ interface SingleSelectProps {
   disabled?: boolean;
   error?: string | undefined;
   searchURL?: string | undefined;
+  className?: string;
 }
 
 export function SingleSelect({
@@ -45,6 +46,7 @@ export function SingleSelect({
   disabled,
   error,
   searchURL,
+  className,
 }: SingleSelectProps) {
   const { axiosInstance, reqForToastAndSetMessage } = useParentContext();
 
@@ -88,7 +90,7 @@ export function SingleSelect({
   React.useEffect(() => setComponentOptions(options), [options]);
 
   return (
-    <div className="w-full">
+    <div className={cn("w-full", className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

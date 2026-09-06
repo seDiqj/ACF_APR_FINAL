@@ -1226,7 +1226,7 @@ const BeneficiaryProfilePage: React.FC<
                       onValueChange={(value) =>
                         setEvaluationForm((prev) => ({
                           ...prev,
-                          clientSatisfaction: value,
+                          clientSatisfaction: value as BeneficiaryEvaluationType["clientSatisfaction"],
                         }))
                       }
                       className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"

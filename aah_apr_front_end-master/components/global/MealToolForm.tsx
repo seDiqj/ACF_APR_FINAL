@@ -232,7 +232,7 @@ const MealToolForm: React.FC<MealToolInterface> = ({
     if (IsEditMode(mode)) {
       requestHandler()
         .put(
-          `/main_db/beneficiary/mealtool/${submittedMealTool.id}`,
+          `/main_db/beneficiary/mealtool/${mealtoolId}`,
           submittedMealTool
         )
         .then((response: any) => {
