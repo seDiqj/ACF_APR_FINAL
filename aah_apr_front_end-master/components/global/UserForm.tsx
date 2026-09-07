@@ -640,7 +640,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                           }}
                         >
                           {form.photo_path ? (
-                            <img
+                            <Image
                               src={
                                 "http://127.0.0.1:8000/storage/" +
                                 form.photo_path

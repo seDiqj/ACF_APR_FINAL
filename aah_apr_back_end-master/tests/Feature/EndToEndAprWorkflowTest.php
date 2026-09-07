@@ -79,18 +79,16 @@ class EndToEndAprWorkflowTest extends TestCase
 
         // 4. Create indicator (main_database, individual type) with per-province target
         $indicatorRes = $this->api()->postJson('/api/projects/i/indicator', [
-            'indicator' => [
-                'outputId' => $outputId,
-                'database' => 'main_database',
-                'indicator' => 'E2E Beneficiaries reached',
-                'indicatorRef' => 'E2E-IND-1',
-                'target' => 100,
-                'status' => 'inProgress',
-                'dessaggregationType' => 'indevidual',
-                'description' => 'E2E individual reach indicator',
-                'provinces' => [
-                    ['province' => 'kabul', 'target' => 100, 'councilorCount' => 4],
-                ],
+            'outputId' => $outputId,
+            'database' => 'main_database',
+            'indicator' => 'E2E Beneficiaries reached',
+            'indicatorRef' => 'E2E-IND-1',
+            'target' => 100,
+            'status' => 'inProgress',
+            'dessaggregationType' => 'indevidual',
+            'description' => 'E2E individual reach indicator',
+            'provinces' => [
+                ['province' => 'kabul', 'target' => 100, 'councilorCount' => 4],
             ],
         ]);
         $this->assertCreatedOrOk($indicatorRes);
@@ -137,6 +135,9 @@ class EndToEndAprWorkflowTest extends TestCase
             'age' => 30,
             'gender' => 'male',
             'maritalStatus' => 'married',
+            'literacyLevel' => 'read_write',
+            'householdStatus' => 'host_community',
+            'disabilityType' => 'person_without_disability',
             'phone' => '0700123456',
         ]);
         $this->assertCreatedOrOk($beneficiaryRes);
