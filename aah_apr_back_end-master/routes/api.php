@@ -51,7 +51,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix("authentication")->name("auth.")->group(function () {
-    Route::post("/login", [AuthenticationController::class, "login"]);
+    Route::post("/login", [AuthenticationController::class, "login"])->middleware("throttle:login");
     Route::post("/logout", [AuthenticationController::class, "logout"])->middleware(["auth:sanctum"]);
 });
 
@@ -179,7 +179,7 @@ Route::prefix("kit_db")->name("kit_db.")->middleware(["auth:sanctum"])->group(fu
     Route::get("/beneficiary/{id}", [KitDatabaseController::class, "showBeneficiary"])->middleware("permission:Kit.view");
     Route::get("/program/{id}", [KitDatabaseController::class, "showBeneficiaryProgram"])->middleware("permission:Kit.view");
     Route::get("/show_kit/{id}", [KitDatabaseController::class, "showKit"])->middleware("permission:Kit.view");
-    Route::post("/beneficiary", [KitDatabaseController::class, "storeBeneficiary"]);
+    Route::post("/beneficiary", [KitDatabaseController::class, "storeBeneficiary"])->middleware("permission:Kit.create");
     Route::post("/kit", [KitDatabaseController::class, "storeKit"])->middleware("permission:Kit.create");
     Route::post("/delete_kit", [KitDatabaseController::class, "destroyKits"])->middleware("permission:Kit.delete");
     Route::post("/delete_kit_from_beneficiary/{id}", [KitDatabaseController::class, "destroyKitFromBeneficiary"])->middleware("permission:Kit.delete");

@@ -17,7 +17,7 @@ class UsersTableSeeder extends Seeder
      */
     public function run(): void
     {
-        $password = env('SEED_ADMIN_PASSWORD') ?: 'developer123';
+        $password = env('SEED_ADMIN_PASSWORD') ?: Str::random(20);
 
         User::factory()->create([
             'name' => 'Mosa Baregzay',

@@ -12,6 +12,11 @@ const useEcho = (): Echo<any> | null => {
     const connectEcho = async () => {
       if (typeof window === "undefined") return;
 
+      // Do not attempt a WebSocket connection when no Reverb key is configured
+      // (e.g. production with BROADCAST_CONNECTION=log). This avoids repeated
+      // ERR_CONNECTION_REFUSED / handshake errors in the browser console.
+      if (!process.env.NEXT_PUBLIC_REVERB_APP_KEY) return;
+
       const [{ default: EchoClient }, { default: Pusher }] = await Promise.all([
         import('laravel-echo'),
         import('pusher-js'),

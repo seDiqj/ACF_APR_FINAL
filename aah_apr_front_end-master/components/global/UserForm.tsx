@@ -642,7 +642,12 @@ const ProfileModal: React.FC<UserInterface> = ({
                           {form.photo_path ? (
                             <Image
                               src={
-                                "http://127.0.0.1:8000/storage/" +
+                                (process.env.NEXT_PUBLIC_API_BASE_URL ??
+                                  "http://127.0.0.1:8000/api").replace(
+                                  /\/api\/?$/,
+                                  ""
+                                ) +
+                                "/storage/" +
                                 form.photo_path
                               }
                               alt="User avatar"
