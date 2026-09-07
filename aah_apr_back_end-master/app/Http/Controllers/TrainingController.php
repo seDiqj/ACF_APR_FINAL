@@ -7,6 +7,7 @@ use App\Http\Requests\StoreChapterRequest;
 use App\Http\Requests\StorePreAndPostTestRequest;
 use App\Http\Requests\StoreTrainingBeneficiaryRequest;
 use App\Http\Requests\StoreTrainingRequest;
+use App\Http\Requests\UpdateTrainingBeneficiaryRequest;
 use App\Models\Beneficiary;
 use App\Models\Chapter;
 use App\Models\Database;
@@ -379,7 +380,7 @@ class TrainingController extends Controller
         ], 200);
     }
     
-    public function updateBeneficiary(StoreTrainingBeneficiaryRequest $request, string $id)
+    public function updateBeneficiary(UpdateTrainingBeneficiaryRequest $request, string $id)
     {
         $validated = $request->validated();
 

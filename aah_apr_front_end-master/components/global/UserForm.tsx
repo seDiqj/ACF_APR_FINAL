@@ -176,12 +176,10 @@ const ProfileModal: React.FC<UserInterface> = ({
     setUserPermissions(role.permissions.map((p: any) => p.id));
   };
 
-  const getGroupPermissionIds = (perms: any[]) =>
-    perms.map((p) => p.id);
+  const getGroupPermissionIds = (perms: any[]) => perms.map((p) => p.id);
 
   const isGroupFullySelected = (perms: any[]) =>
-    perms.length > 0 &&
-    perms.every((p) => userPermissions.includes(p.id));
+    perms.length > 0 && perms.every((p) => userPermissions.includes(p.id));
 
   const isGroupPartiallySelected = (perms: any[]) =>
     perms.some((p) => userPermissions.includes(p.id)) &&
@@ -201,9 +199,7 @@ const ProfileModal: React.FC<UserInterface> = ({
         return prev.filter((id) => !groupPermissionIds.includes(id));
       }
 
-      return Array.from(
-        new Set([...prev, ...groupPermissionIds])
-      );
+      return Array.from(new Set([...prev, ...groupPermissionIds]));
     });
   };
 
@@ -277,10 +273,7 @@ const ProfileModal: React.FC<UserInterface> = ({
       formData.append("photo_path", selectedFile);
     }
 
-    formData.append(
-      "permissions",
-      JSON.stringify(userPermissions)
-    );
+    formData.append("permissions", JSON.stringify(userPermissions));
 
     formData.append("role", userRole);
 
@@ -288,17 +281,11 @@ const ProfileModal: React.FC<UserInterface> = ({
 
     const request = IsCreateMode(mode)
       ? requestHandler().post("/user_mng/user", formData)
-      : requestHandler().post(
-          `/user_mng/edit_user/${userId}`,
-          formData
-        );
+      : requestHandler().post(`/user_mng/edit_user/${userId}`, formData);
 
     request
       .then((response: any) => {
-        reqForToastAndSetMessage(
-          response.data.message,
-          "success"
-        );
+        reqForToastAndSetMessage(response.data.message, "success");
 
         onOpenChange(false);
         handleReload();
@@ -331,9 +318,7 @@ const ProfileModal: React.FC<UserInterface> = ({
     if (IsEditOrShowMode(mode)) {
       Promise.all([
         requestHandler().get(`/user_mng/user/${userId}`),
-        requestHandler().get(
-          `/user_mng/permissions_&_roles`
-        ),
+        requestHandler().get(`/user_mng/permissions_&_roles`),
       ])
         .then(
           ([userRes, rolePermRes]: [
@@ -342,32 +327,63 @@ const ProfileModal: React.FC<UserInterface> = ({
           ]) => {
             const userData = userRes.data.data;
 
-            const {
-              permissions,
-              role,
-              roles,
-              ...rest
-            } = userData;
+            const { permissions, direct_permissions, role, roles, ...rest } =
+              userData;
 
+            /*
+             * ---------------------------------------------------------
+             * ROLE
+             * ---------------------------------------------------------
+             */
+
+            const selectedRole = roles?.length > 0 ? roles[0] : role || "";
+
+            setUserRole(selectedRole);
+
+            /*
+             * IMPORTANT:
+             * UserFormSchema validates form.role,
+             * therefore form.role must also be populated.
+             */
             setForm((prev) => ({
               ...prev,
               ...rest,
+              role: selectedRole,
             }));
 
-            setAllPermissions(
-              rolePermRes.data.data.permissions
-            );
+            /*
+             * ---------------------------------------------------------
+             * ALL PERMISSIONS
+             * ---------------------------------------------------------
+             */
 
-            setAllRoles(rolePermRes.data.data.roles);
+            setAllPermissions(rolePermRes.data.data.permissions || {});
 
-            setUserRole(
-              roles?.length > 0
-                ? roles[0]
-                : role || ""
-            );
+            /*
+             * ---------------------------------------------------------
+             * ALL ROLES
+             * ---------------------------------------------------------
+             */
+
+            setAllRoles(rolePermRes.data.data.roles || []);
+
+            /*
+             * ---------------------------------------------------------
+             * USER PERMISSIONS
+             * ---------------------------------------------------------
+             *
+             * These are the effective permissions:
+             *
+             * Role permissions
+             * +
+             * Direct permissions
+             *
+             * Normalize IDs to string because backend IDs
+             * are normally numeric.
+             */
 
             setUserPermissions(
-              permissions?.map((p: any) => p.id) || []
+              permissions?.map((p: any) => String(p.id)) || []
             );
           }
         )
@@ -385,9 +401,7 @@ const ProfileModal: React.FC<UserInterface> = ({
       requestHandler()
         .get("/user_mng/permissions_&_roles")
         .then((response: AxiosResponse<any>) => {
-          setAllPermissions(
-            response.data.data.permissions
-          );
+          setAllPermissions(response.data.data.permissions);
 
           setAllRoles(response.data.data.roles);
 
@@ -475,11 +489,7 @@ const ProfileModal: React.FC<UserInterface> = ({
 
           <div className="flex md:flex-col gap-2 overflow-x-auto no-scrollbar">
             {steps
-              .filter(
-                (s) =>
-                  s.label !== "Summary" ||
-                  !IsShowMode(mode)
-              )
+              .filter((s) => s.label !== "Summary" || !IsShowMode(mode))
               .map((s) => {
                 const isActive = step === s.id;
 
@@ -487,10 +497,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                   <button
                     key={s.id}
                     type="button"
-                    disabled={
-                      loading &&
-                      IsNotCreateMode(mode)
-                    }
+                    disabled={loading && IsNotCreateMode(mode)}
                     onClick={() => setStep(s.id)}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
@@ -633,8 +640,11 @@ const ProfileModal: React.FC<UserInterface> = ({
                           }}
                         >
                           {form.photo_path ? (
-                            <Image
-                              src={form.photo_path}
+                            <img
+                              src={
+                                "http://127.0.0.1:8000/storage/" +
+                                form.photo_path
+                              }
                               alt="User avatar"
                               fill
                               className="object-cover"
@@ -661,14 +671,12 @@ const ProfileModal: React.FC<UserInterface> = ({
                           </p>
 
                           <p className="text-[11px] text-muted-foreground truncate">
-                            {form.title ||
-                              "No title specified"}
+                            {form.title || "No title specified"}
                           </p>
 
                           {!isReadOnly && (
                             <p className="text-[10px] text-primary mt-1">
-                              Click the image to change
-                              profile photo.
+                              Click the image to change profile photo.
                             </p>
                           )}
                         </div>
@@ -711,9 +719,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                             )}
                           />
 
-                          <FieldError
-                            message={formErrors.name}
-                          />
+                          <FieldError message={formErrors.name} />
                         </div>
 
                         {/* TITLE */}
@@ -740,9 +746,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                             )}
                           />
 
-                          <FieldError
-                            message={formErrors.title}
-                          />
+                          <FieldError message={formErrors.title} />
                         </div>
 
                         {/* EMAIL */}
@@ -770,9 +774,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                             )}
                           />
 
-                          <FieldError
-                            message={formErrors.email}
-                          />
+                          <FieldError message={formErrors.email} />
                         </div>
 
                         {/* PASSWORD */}
@@ -801,9 +803,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                               )}
                             />
 
-                            <FieldError
-                              message={formErrors.password}
-                            />
+                            <FieldError message={formErrors.password} />
                           </div>
                         )}
 
@@ -841,15 +841,11 @@ const ProfileModal: React.FC<UserInterface> = ({
                             disabled={isReadOnly}
                             placeholder="Select status"
                             className={
-                              formErrors.status
-                                ? "border-destructive"
-                                : ""
+                              formErrors.status ? "border-destructive" : ""
                             }
                           />
 
-                          <FieldError
-                            message={formErrors.status}
-                          />
+                          <FieldError message={formErrors.status} />
                         </div>
 
                         {/* ROLE */}
@@ -869,10 +865,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                               setUserRole(val);
 
                               handleSelectRole(
-                                allRoles.find(
-                                  (r) =>
-                                    r.name === val
-                                )
+                                allRoles.find((r) => r.name === val)
                               );
 
                               setForm((prev) => ({
@@ -885,15 +878,11 @@ const ProfileModal: React.FC<UserInterface> = ({
                             disabled={isReadOnly}
                             placeholder="Select role"
                             className={
-                              formErrors.role
-                                ? "border-destructive"
-                                : ""
+                              formErrors.role ? "border-destructive" : ""
                             }
                           />
 
-                          <FieldError
-                            message={formErrors.role}
-                          />
+                          <FieldError message={formErrors.role} />
                         </div>
                       </div>
                     </section>
@@ -917,8 +906,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                             </h3>
 
                             <p className="text-[10px] text-muted-foreground mt-0.5">
-                              Select the permissions granted
-                              to this user.
+                              Select the permissions granted to this user.
                             </p>
                           </div>
                         </div>
@@ -929,150 +917,130 @@ const ProfileModal: React.FC<UserInterface> = ({
                       </div>
                     </section>
 
-                    {Object.entries(allPermissions).map(
-                      ([group, perms]) => {
-                        const fullySelected =
-                          isGroupFullySelected(perms);
+                    {Object.entries(allPermissions).map(([group, perms]) => {
+                      const fullySelected = isGroupFullySelected(perms);
 
-                        const partiallySelected =
-                          isGroupPartiallySelected(perms);
+                      const partiallySelected = isGroupPartiallySelected(perms);
 
-                        return (
-                          <section
-                            key={group}
-                            className="
+                      return (
+                        <section
+                          key={group}
+                          className="
                               rounded-lg
                               border
                               border-border/80
                               bg-muted/20
                               overflow-hidden
                             "
-                          >
-                            {/* GROUP HEADER */}
+                        >
+                          {/* GROUP HEADER */}
 
-                            <div
-                              className={cn(
-                                "flex items-center gap-3",
-                                "px-4 py-3",
-                                "border-b border-border/60",
-                                !isReadOnly &&
-                                  "cursor-pointer hover:bg-muted/40",
-                                "transition-colors"
-                              )}
-                              onClick={() =>
-                                handleTogglePermissionGroup(
-                                  perms
-                                )
+                          <div
+                            className={cn(
+                              "flex items-center gap-3",
+                              "px-4 py-3",
+                              "border-b border-border/60",
+                              !isReadOnly && "cursor-pointer hover:bg-muted/40",
+                              "transition-colors"
+                            )}
+                            onClick={() => handleTogglePermissionGroup(perms)}
+                          >
+                            <Checkbox
+                              checked={
+                                fullySelected
+                                  ? true
+                                  : partiallySelected
+                                  ? "indeterminate"
+                                  : false
                               }
-                            >
-                              <Checkbox
-                                checked={
-                                  fullySelected
-                                    ? true
-                                    : partiallySelected
-                                    ? "indeterminate"
-                                    : false
-                                }
-                                disabled={isReadOnly}
-                                className="
+                              disabled={isReadOnly}
+                              className="
                                   h-4 w-4
                                   border-input
                                   data-[state=checked]:bg-primary
                                   data-[state=checked]:border-primary
                                 "
-                              />
+                            />
 
-                              <div className="flex-1 min-w-0">
-                                <h3
-                                  className={cn(
-                                    "text-xs font-bold",
-                                    fullySelected
-                                      ? "text-primary"
-                                      : "text-foreground"
-                                  )}
-                                >
-                                  {group}
-                                </h3>
+                            <div className="flex-1 min-w-0">
+                              <h3
+                                className={cn(
+                                  "text-xs font-bold",
+                                  fullySelected
+                                    ? "text-primary"
+                                    : "text-foreground"
+                                )}
+                              >
+                                {group}
+                              </h3>
 
-                                <p className="text-[10px] text-muted-foreground mt-0.5">
-                                  {perms.length} permission
-                                  {perms.length !== 1
-                                    ? "s"
-                                    : ""}
-                                </p>
-                              </div>
-
-                              {fullySelected && (
-                                <Check className="h-4 w-4 text-primary" />
-                              )}
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {perms.length} permission
+                                {perms.length !== 1 ? "s" : ""}
+                              </p>
                             </div>
 
-                            {/* PERMISSIONS */}
+                            {fullySelected && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
 
-                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {perms.map(
-                                (perm: any) => {
-                                  const selected =
-                                    userPermissions.includes(
-                                      perm.id
-                                    );
+                          {/* PERMISSIONS */}
 
-                                  return (
-                                    <div
-                                      key={perm.id}
-                                      className={cn(
-                                        "flex items-center gap-3",
-                                        "rounded-md border",
-                                        "px-3 py-2.5",
-                                        "transition-colors",
-                                        selected
-                                          ? "border-primary/30 bg-primary/5"
-                                          : "border-border/60 bg-background",
-                                        !isReadOnly &&
-                                          "hover:bg-muted/30"
-                                      )}
-                                    >
-                                      <Checkbox
-                                        checked={selected}
-                                        onCheckedChange={() =>
-                                          handlePermissionToggle(
-                                            perm.id
-                                          )
-                                        }
-                                        disabled={
-                                          isReadOnly
-                                        }
-                                        className="
+                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {perms.map((perm: any) => {
+                              const selected = userPermissions.includes(
+                                perm.id
+                              );
+
+                              return (
+                                <div
+                                  key={perm.id}
+                                  className={cn(
+                                    "flex items-center gap-3",
+                                    "rounded-md border",
+                                    "px-3 py-2.5",
+                                    "transition-colors",
+                                    selected
+                                      ? "border-primary/30 bg-primary/5"
+                                      : "border-border/60 bg-background",
+                                    !isReadOnly && "hover:bg-muted/30"
+                                  )}
+                                >
+                                  <Checkbox
+                                    checked={selected}
+                                    onCheckedChange={() =>
+                                      handlePermissionToggle(perm.id)
+                                    }
+                                    disabled={isReadOnly}
+                                    className="
                                           h-4 w-4
                                           border-input
                                           data-[state=checked]:bg-primary
                                           data-[state=checked]:border-primary
                                         "
-                                      />
+                                  />
 
-                                      <span
-                                        className={cn(
-                                          "text-[11px] font-medium",
-                                          "select-none",
-                                          selected
-                                            ? "text-foreground"
-                                            : "text-muted-foreground"
-                                        )}
-                                      >
-                                        {perm.name}
-                                      </span>
-                                    </div>
-                                  );
-                                }
-                              )}
-                            </div>
-                          </section>
-                        );
-                      }
-                    )}
+                                  <span
+                                    className={cn(
+                                      "text-[11px] font-medium",
+                                      "select-none",
+                                      selected
+                                        ? "text-foreground"
+                                        : "text-muted-foreground"
+                                    )}
+                                  >
+                                    {perm.name}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      );
+                    })}
 
-                    {Object.keys(allPermissions).length ===
-                      0 && (
+                    {Object.keys(allPermissions).length === 0 && (
                       <div className="rounded-lg border border-dashed border-border p-8 text-center">
                         <ShieldCheck className="h-7 w-7 mx-auto text-muted-foreground/50 mb-2" />
 
@@ -1100,8 +1068,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                           </h3>
 
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Review the information before
-                            saving the user.
+                            Review the information before saving the user.
                           </p>
                         </div>
                       </div>
@@ -1113,8 +1080,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                           {Object.entries(form)
                             .filter(
                               ([key]) =>
-                                key !== "photo_path" &&
-                                key !== "password"
+                                key !== "photo_path" && key !== "password"
                             )
                             .map(([key, value]) => (
                               <div
@@ -1127,10 +1093,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                                 "
                               >
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">
-                                  {key.replaceAll(
-                                    "_",
-                                    " "
-                                  )}
+                                  {key.replaceAll("_", " ")}
                                 </span>
 
                                 <span className="text-xs font-medium text-foreground break-words">
@@ -1159,9 +1122,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                         {Object.values(allPermissions)
                           .flatMap((gp) => gp)
                           .filter((perm: any) =>
-                            userPermissions.includes(
-                              perm.id
-                            )
+                            userPermissions.includes(perm.id)
                           )
                           .map((perm: any) => (
                             <span
@@ -1219,9 +1180,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() =>
-                        setStep((prev) => prev - 1)
-                      }
+                      onClick={() => setStep((prev) => prev - 1)}
                       disabled={isLoading}
                       className="
                         h-10
@@ -1255,13 +1214,10 @@ const ProfileModal: React.FC<UserInterface> = ({
 
                   {/* NEXT / SAVE */}
 
-                  {step <
-                  (IsShowMode(mode) ? 2 : 3) ? (
+                  {step < (IsShowMode(mode) ? 2 : 3) ? (
                     <Button
                       type="button"
-                      onClick={() =>
-                        setStep((prev) => prev + 1)
-                      }
+                      onClick={() => setStep((prev) => prev + 1)}
                       className="
                         h-10
                         px-5
@@ -1311,9 +1267,7 @@ const ProfileModal: React.FC<UserInterface> = ({
                       ) : (
                         <>
                           <Save className="h-4 w-4" />
-                          {IsCreateMode(mode)
-                            ? "Save"
-                            : "Update"}
+                          {IsCreateMode(mode) ? "Save" : "Update"}
                         </>
                       )}
                     </Button>
@@ -1329,4 +1283,3 @@ const ProfileModal: React.FC<UserInterface> = ({
 };
 
 export default ProfileModal;
-

@@ -89,6 +89,9 @@ const ProgramMainForm: React.FC<MainDatabaseProgramFormInterface> = ({
     setFormErrors({});
     setIsLoading(true);
 
+    console.log(formData);
+    return;
+
     if (IsCreateMode(mode)) {
       requestHandler()
         .post("/global/program/main_database", formData)

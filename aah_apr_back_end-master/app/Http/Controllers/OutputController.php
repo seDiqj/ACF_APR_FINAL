@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOutputRequest;
+use App\Http\Requests\UpdateOutputRequest;
 use App\Models\Outcome;
 use App\Models\Output;
 use App\Models\Project;
@@ -55,18 +56,13 @@ class OutputController extends Controller
         return response()->json(["status" => true, "message" => "", "data" => $output], 200);
     } 
 
-    public function update(Request $request, string $id)
+    public function update(UpdateOutputRequest $request, string $id)
     {
         $output = Output::find($id);
         
         if (!$output) return response()->json(["status" => false, "message" => "No such output in database !"], 404);
 
-        $validated = $request->validate([
-            "output" => "required|string",
-            "outputRef" => "required|string"
-        ]);
-
-        $output->update($validated);
+        $output->update($request->validated());
 
         return response()->json(["status" => true, "message" => "Output updated successfully !"]);
     }

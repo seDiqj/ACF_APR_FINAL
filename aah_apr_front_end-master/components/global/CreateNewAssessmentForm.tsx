@@ -211,6 +211,9 @@ const AssessmentForm: React.FC<AssessmentFormInterface> = ({
       return;
     }
 
+    console.log(formData);
+    return;
+
     setIsLoading(true);
 
     try {

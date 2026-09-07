@@ -15,7 +15,7 @@ class StoreBeneficiaryRequest extends FormRequest
     {
         return [
             'program'             => 'required|exists:programs,id',
-            'dateOfRegistration' => 'nullable|date',
+            'dateOfRegistration'  => 'nullable|date',
             'code'                 => 'nullable|string|max:255',
             'name'                 => 'required|string|max:255',
             'fatherHusbandName'  => 'required|string|max:255',

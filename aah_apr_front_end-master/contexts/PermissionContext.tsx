@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { useParentContext } from "./ParentContext";
+import PreLoader from "@/components/PreLoader";
 
 const PermissionContext = createContext<any>(null);
 
@@ -24,13 +25,12 @@ export const PermissionProvider = ({ children }: PermissionProviderProps) => {
     axiosInstance
       .get("/user_mng/permissionsForAuth")
       .then((response: any) => {
-        setPermissions([
-          ...response.data.data,
-          "ok",
-        ]);
+        setPermissions([...response.data.data, "ok"]);
       })
       .catch((error: any) => {
-        reqForToastAndSetMessage(error?.response?.data?.message || "Error fetching permissions");
+        reqForToastAndSetMessage(
+          error?.response?.data?.message || "Error fetching permissions"
+        );
       })
       .finally(() => {
         setLoading(false);
@@ -39,7 +39,7 @@ export const PermissionProvider = ({ children }: PermissionProviderProps) => {
 
   return (
     <PermissionContext.Provider value={{ permissions, loading }}>
-      {children}
+      {loading ? <PreLoader></PreLoader> : children}
     </PermissionContext.Provider>
   );
 };

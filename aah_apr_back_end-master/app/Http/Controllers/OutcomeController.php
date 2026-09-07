@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOutcomeRequest;
+use App\Http\Requests\UpdateOutcomeRequest;
 use App\Models\Outcome;
 use App\Models\Project;
 use Illuminate\Http\Request;
@@ -58,19 +59,13 @@ class OutcomeController extends Controller
 
     }
     
-    public function update(Request $request, $id)
+    public function update(UpdateOutcomeRequest $request, string $id)
     {
-
         $outcome = Outcome::find($id);
 
         if (!$outcome) return response()->json(["status" => false, "message" => "No such outcome in database !"], 404);
 
-        $validated = $request->validate([
-            'outcome' => 'required|string',
-            'outcomeRef' => 'required|string'
-        ]);
-
-        $outcome->update($validated);
+        $outcome->update($request->validated());
         
         return response()->json(['status' => true, 'message' => 'Outcome updated successfully']);
     }

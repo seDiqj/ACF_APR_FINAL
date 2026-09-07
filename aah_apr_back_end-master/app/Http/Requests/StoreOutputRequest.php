@@ -15,18 +15,8 @@ class StoreOutputRequest extends FormRequest
     {
         return [
             'outcomeId' => 'required|exists:outcomes,id',
-            'output' => 'required|string',
-            'outputRef' => 'required|string',
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'outcomeId.required' => 'Outcome selection is required.',
-            'outcomeId.exists' => 'The selected outcome is invalid.',
-            'output.required' => 'The output field is required.',
-            'outputRef.required' => 'The output reference field is required.',
+            'output' => 'required|string|min:1',
+            'outputRef' => 'required|string|min:1|max:255',
         ];
     }
 

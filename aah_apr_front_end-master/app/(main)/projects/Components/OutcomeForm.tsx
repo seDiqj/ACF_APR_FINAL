@@ -102,8 +102,8 @@ const OutcomeForm: React.FC<OutcomeFormInterface> = ({ mode }) => {
                     className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 hover:bg-muted/30 transition-colors"
                   >
                     <div
-                      className="flex flex-col min-w-0 flex-1 cursor-pointer"
-                      title={`Outcome: ${item.outcome} \nOutcome Reference: ${item.outcomeRef}`}
+                      className="flex flex-col min-w-0 max-w-[200px] flex-1 cursor-pointer"
+                      title={`Outcome: ${item.outcome} \n\n\nOutcome Reference: ${item.outcomeRef}`}
                     >
                       <span className="font-semibold text-foreground text-base truncate">
                         {item.outcome}
@@ -114,7 +114,6 @@ const OutcomeForm: React.FC<OutcomeFormInterface> = ({ mode }) => {
                     </div>
 
                     <div className="flex items-center gap-2 sm:justify-end shrink-0">
-                      {/* دکمه حذف - اصلاح باگ مقایسه آی‌دی به جای ایندکس خطی */}
                       {!readOnly && (
                         <Button
                           variant="ghost"
@@ -136,7 +135,6 @@ const OutcomeForm: React.FC<OutcomeFormInterface> = ({ mode }) => {
                         </Button>
                       )}
 
-                      {/* دکمه‌های نمایش و ویرایش */}
                       {IsNotANullValue(item.id) && (
                         <Button
                           variant="ghost"
@@ -161,7 +159,6 @@ const OutcomeForm: React.FC<OutcomeFormInterface> = ({ mode }) => {
           </div>
         </CardContent>
 
-        {/* دکمه‌های ناوبری پایدار و هماهنگ */}
         <CardFooter className="p-6 border-t bg-muted/20 flex justify-end">
           {cardsBottomButtons(
             setCurrentTab,
@@ -174,7 +171,6 @@ const OutcomeForm: React.FC<OutcomeFormInterface> = ({ mode }) => {
         </CardFooter>
       </Card>
 
-      {/* مدال‌های داینامیک ثبت، ویرایش و نمایش */}
       {IsNotShowMode(mode) && reqForOutcomeForm && (
         <OutcomeModel
           isOpen={reqForOutcomeForm}

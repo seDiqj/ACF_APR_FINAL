@@ -488,7 +488,7 @@ class ProjectsController extends Controller
         $validated = $request->validate([
             'projectCode'      => ['required', 'string', 'max:255'],
             'projectTitle'     => 'required|string|max:255',
-            'projectGoal'      => 'required|string|max:255',
+            'projectGoal'      => 'required|string',
             'projectDonor'     => 'required|string|max:255',
             'startDate'        => 'required|date',
             'endDate'          => 'required|date|after_or_equal:startDate',

@@ -125,6 +125,7 @@ const KitDatabaseBeneficiaryForm: React.FC<
       return;
     }
 
+
     setFormErrors({});
     setIsLoading(true);
 
